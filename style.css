@@ -62,6 +62,8 @@ button {
   width: 100%; padding: 12px; font: inherit; font-weight: 600;
   color: #fff; background: var(--accent); border: 0; border-radius: 8px; cursor: pointer;
 }
+.banner p { margin: 0 0 8px; }
+button.secondary { width: auto; padding: 6px 12px; font-size: 0.9rem; color: var(--text); background: var(--card); border: 1px solid var(--line); }
 button:disabled { opacity: 0.6; cursor: default; }
 
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }

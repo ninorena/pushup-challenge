@@ -14,7 +14,11 @@
       <p id="week-label" class="muted">Loading…</p>
     </header>
 
-    <p id="demo-banner" class="banner" hidden>Demo mode: entries stay in this browser only. Set <code>scriptUrl</code> in <code>config.js</code> to share them.</p>
+    <div id="demo-banner" class="banner" hidden>
+      <p>Demo mode: entries stay in this browser only. Set <code>scriptUrl</code> in <code>config.js</code> to share them.</p>
+      <p>To test past weeks, add <code>?start=2026-10-05</code> to the address.</p>
+      <button type="button" id="clear-demo" class="secondary">Clear demo entries</button>
+    </div>
     <p id="error" class="banner error" hidden></p>
 
     <section id="progress" class="card" aria-live="polite"></section>

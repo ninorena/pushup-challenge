@@ -5,6 +5,12 @@ const $ = (id) => document.getElementById(id);
 const NAME_KEY = "pushup-challenge:name";
 const DEMO_KEY = "pushup-challenge:demo-entries";
 
+// Demo mode only: ?start=YYYY-MM-DD moves week 1 so past weeks can be tested.
+const startOverride = new URLSearchParams(location.search).get("start");
+if (!config.scriptUrl && /^\d{4}-\d{2}-\d{2}$/.test(startOverride || "")) {
+  config.startDate = startOverride;
+}
+
 function localDate(d = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -225,6 +231,11 @@ $("log-form").addEventListener("submit", async (event) => {
 });
 
 $("demo-banner").hidden = Boolean(config.scriptUrl);
+$("clear-demo").addEventListener("click", () => {
+  try { localStorage.removeItem(DEMO_KEY); } catch { /* nothing stored */ }
+  $("form-status").textContent = "Demo entries cleared.";
+  refresh();
+});
 $("name").value = storageGet(NAME_KEY) || "";
 $("date").value = localDate();
 $("date").max = localDate();
