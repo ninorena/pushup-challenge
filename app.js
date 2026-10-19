@@ -5,10 +5,11 @@ const $ = (id) => document.getElementById(id);
 const NAME_KEY = "pushup-challenge:name";
 const DEMO_KEY = "pushup-challenge:demo-entries";
 
-// Demo mode only: ?start=YYYY-MM-DD moves week 1 so past weeks can be tested.
-const startOverride = new URLSearchParams(location.search).get("start");
-if (!config.scriptUrl && /^\d{4}-\d{2}-\d{2}$/.test(startOverride || "")) {
-  config.startDate = startOverride;
+// Demo mode starts week 1 today, so logging shows results right away.
+// ?start=YYYY-MM-DD moves week 1 to test past weeks.
+if (!config.scriptUrl) {
+  const startOverride = new URLSearchParams(location.search).get("start");
+  config.startDate = /^\d{4}-\d{2}-\d{2}$/.test(startOverride || "") ? startOverride : localDate();
 }
 
 function localDate(d = new Date()) {
@@ -172,6 +173,29 @@ function renderRules() {
 
 let lastNames = [];
 
+const NEW_NAME = "__new__";
+let currentName = storageGet(NAME_KEY) || "";
+
+// The name dropdown: everyone who has logged, plus "I'm new" for joiners.
+function renderNameSelect() {
+  const select = $("name-select");
+  const chosen = currentName;
+  select.replaceChildren(
+    el("option", { value: "" }, "Choose your name"),
+    ...lastNames.map((n) => el("option", { value: n }, n)),
+    el("option", { value: NEW_NAME }, "I'm new"),
+  );
+  const match = chosen === NEW_NAME ? NEW_NAME : lastNames.find((n) => n.toLowerCase() === chosen.toLowerCase());
+  select.value = match || (lastNames.length === 0 ? NEW_NAME : "");
+  showNewName();
+}
+
+function showNewName() {
+  const isNew = $("name-select").value === NEW_NAME;
+  $("new-name-label").hidden = !isNew;
+  $("new-name").required = isNew;
+}
+
 async function refresh() {
   const today = localDate();
   try {
@@ -190,7 +214,7 @@ async function refresh() {
     renderThisWeek(current);
     renderHistory(summary.weeks);
     lastNames = summary.names;
-    $("names").replaceChildren(...lastNames.map((n) => el("option", { value: n })));
+    renderNameSelect();
   } catch (err) {
     $("error").textContent = `Could not load the log: ${err.message}`;
     $("error").hidden = false;
@@ -199,7 +223,8 @@ async function refresh() {
 
 $("log-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const name = $("name").value.trim();
+  const picked = $("name-select").value;
+  const name = picked === NEW_NAME ? $("new-name").value.trim() : picked;
   const reps = Number($("reps").value);
   const date = $("date").value;
   const status = $("form-status");
@@ -217,8 +242,10 @@ $("log-form").addEventListener("submit", async (event) => {
   status.textContent = "Saving…";
   try {
     await store.add({ name: known || name, date, reps, exercise: "pushups" });
-    storageSet(NAME_KEY, known || name);
+    currentName = known || name;
+    storageSet(NAME_KEY, currentName);
     $("reps").value = "";
+    $("new-name").value = "";
     status.textContent = date < config.startDate
       ? `Saved, but reps before ${prettyDate(config.startDate)} do not count.`
       : `Saved ${reps} for ${prettyDate(date)}.`;
@@ -236,7 +263,10 @@ $("clear-demo").addEventListener("click", () => {
   $("form-status").textContent = "Demo entries cleared.";
   refresh();
 });
-$("name").value = storageGet(NAME_KEY) || "";
+$("name-select").addEventListener("change", () => {
+  currentName = $("name-select").value;
+  showNewName();
+});
 $("date").value = localDate();
 $("date").max = localDate();
 renderRules();

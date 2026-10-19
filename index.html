@@ -16,7 +16,7 @@
 
     <div id="demo-banner" class="banner" hidden>
       <p>Demo mode: entries stay in this browser only. Set <code>scriptUrl</code> in <code>config.js</code> to share them.</p>
-      <p>To test past weeks, add <code>?start=2026-10-05</code> to the address.</p>
+      <p>The demo starts today. To test past weeks, add <code>?start=2026-10-05</code> to the address.</p>
       <button type="button" id="clear-demo" class="secondary">Clear demo entries</button>
     </div>
     <p id="error" class="banner error" hidden></p>
@@ -27,8 +27,10 @@
       <h2>Log pushups</h2>
       <form id="log-form">
         <label>Name
-          <input id="name" name="name" list="names" autocomplete="off" maxlength="40" required>
-          <datalist id="names"></datalist>
+          <select id="name-select" required></select>
+        </label>
+        <label id="new-name-label" hidden>Your name
+          <input id="new-name" autocomplete="off" maxlength="40">
         </label>
         <div class="row">
           <label>Reps
