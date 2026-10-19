@@ -3,8 +3,8 @@ export const config = {
   // Leave it empty to run in demo mode, where entries stay in your own browser.
   scriptUrl: "",
 
-  // The first day of week 1. Every week runs 7 days from this day.
-  startDate: "2026-10-26",
+  // The first day of week 1. It must be a Monday: weeks run Monday to Sunday.
+  startDate: "2026-10-19",
 
   rules: {
     // Each week, a person's target grows by this share of their baseline.

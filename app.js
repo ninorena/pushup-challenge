@@ -5,16 +5,28 @@ const $ = (id) => document.getElementById(id);
 const NAME_KEY = "pushup-challenge:name";
 const DEMO_KEY = "pushup-challenge:demo-entries";
 
-// Demo mode starts week 1 today, so logging shows results right away.
+// Demo mode starts week 1 on this week's Monday, so logging shows results right away.
 // ?start=YYYY-MM-DD moves week 1 to test past weeks.
 if (!config.scriptUrl) {
   const startOverride = new URLSearchParams(location.search).get("start");
-  config.startDate = /^\d{4}-\d{2}-\d{2}$/.test(startOverride || "") ? startOverride : localDate();
+  config.startDate = /^\d{4}-\d{2}-\d{2}$/.test(startOverride || "") ? startOverride : thisMonday();
 }
 
 function localDate(d = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function thisMonday() {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return localDate(d);
+}
+
+// "Mon, Oct 19"
+function dayDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
 function prettyDate(iso) {
@@ -86,7 +98,7 @@ function renderProgress(week) {
   if (!week) {
     box.append(
       el("h2", {}, "Starting soon"),
-      el("p", { class: "muted" }, `Week 1 starts ${prettyDate(config.startDate)}. Your first week sets your baseline, so do what you normally can.`),
+      el("p", { class: "muted" }, `Week 1 starts ${dayDate(config.startDate)}. Your first week sets your baseline, so do what you normally can.`),
     );
     return;
   }
@@ -158,6 +170,7 @@ function renderHistory(weeks) {
 function renderRules() {
   const pct = Math.round(config.rules.weeklyIncrease * 100);
   const items = [
+    "Weeks run Monday to Sunday.",
     "Log every set of pushups you do. Any kind counts as one rep: wall, incline, knee or full.",
     "Your first week sets your baseline: the total you did that week. Join on the first day of a week if you can.",
     `After that, your weekly target grows by ${pct}% of your baseline each week.`,
@@ -205,10 +218,10 @@ async function refresh() {
     const current = summary.weeks.at(-1);
     $("error").hidden = true;
     if (current) {
-      $("week-label").textContent = `Week ${current.week} · ${prettyDate(current.from)} – ${prettyDate(current.to)}`;
+      $("week-label").textContent = `Week ${current.week} · ${dayDate(current.from)} to ${dayDate(current.to)}`;
     } else {
       const w1 = weekRange(1, config.startDate);
-      $("week-label").textContent = `Starts ${prettyDate(w1.from)}`;
+      $("week-label").textContent = `Starts ${dayDate(w1.from)}`;
     }
     renderProgress(current);
     renderThisWeek(current);

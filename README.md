@@ -6,7 +6,7 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 
 ## The rules
 
-- Week 1 starts on `startDate` in `config.js`. Every week is 7 days from that day.
+- Weeks run Monday to Sunday. Week 1 starts on `startDate` in `config.js`, which must be a Monday.
 - A person's first week is their baseline: the total they did that week.
 - After that, their weekly target grows by 10% of their baseline each week.
 - Every 4th week after the baseline repeats the week before, for recovery.
