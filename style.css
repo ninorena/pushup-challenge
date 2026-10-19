@@ -57,8 +57,12 @@ form input, form select {
   display: block; width: 100%; margin-top: 4px; padding: 10px 12px;
   font: inherit; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 8px;
+  height: 44px; min-width: 0;
 }
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* iOS Safari draws date fields with its own size; make them match the others. */
+form input[type="date"] { -webkit-appearance: none; appearance: none; }
+form input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 button {
   width: 100%; padding: 12px; font: inherit; font-weight: 600;
   color: #fff; background: var(--accent); border: 0; border-radius: 8px; cursor: pointer;
