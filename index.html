@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pushup Challenge</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Pushup Challenge</h1>
+      <p id="week-label" class="muted">Loading…</p>
+    </header>
+
+    <p id="demo-banner" class="banner" hidden>Demo mode: entries stay in this browser only. Set <code>scriptUrl</code> in <code>config.js</code> to share them.</p>
+    <p id="error" class="banner error" hidden></p>
+
+    <section id="progress" class="card" aria-live="polite"></section>
+
+    <section class="card">
+      <h2>Log pushups</h2>
+      <form id="log-form">
+        <label>Name
+          <input id="name" name="name" list="names" autocomplete="off" maxlength="40" required>
+          <datalist id="names"></datalist>
+        </label>
+        <div class="row">
+          <label>Reps
+            <input id="reps" name="reps" type="number" inputmode="numeric" step="1" min="-2000" max="2000" required>
+          </label>
+          <label>Day
+            <input id="date" name="date" type="date" required>
+          </label>
+        </div>
+        <button type="submit" id="submit">Log reps</button>
+        <p id="form-status" class="muted" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>This week</h2>
+      <div id="this-week"></div>
+    </section>
+
+    <section class="card">
+      <h2>Past weeks</h2>
+      <div id="history"></div>
+    </section>
+
+    <details class="card">
+      <summary>How it works</summary>
+      <ul id="rules"></ul>
+    </details>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
