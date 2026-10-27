@@ -53,12 +53,18 @@ const store = config.scriptUrl
       async add(entry) {
         // text/plain keeps the browser from sending a preflight request,
         // which Apps Script does not answer.
-        const res = await fetch(config.scriptUrl, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(entry),
-        });
-        const body = await res.json();
+        let body;
+        try {
+          const res = await fetch(config.scriptUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(entry),
+          });
+          body = await res.json();
+        } catch {
+          // No readable reply. The entry may still have reached the sheet.
+          throw Object.assign(new Error("No reply from the server."), { unconfirmed: true });
+        }
         if (!body.ok) throw new Error(body.error || "Could not save.");
       },
     }
@@ -185,6 +191,20 @@ function renderRules() {
 }
 
 let lastNames = [];
+// The entries from the last successful load, or null if the last load failed.
+let lastEntries = null;
+
+// After a save with no reply: check whether the entry reached the log anyway.
+async function landed(entry) {
+  if (!lastEntries) return false;
+  const same = (e) => e.name === entry.name && e.date === entry.date && e.reps === entry.reps;
+  const before = lastEntries.filter(same).length;
+  try {
+    return (await store.list()).filter(same).length > before;
+  } catch {
+    return false;
+  }
+}
 
 const NEW_NAME = "__new__";
 let currentName = storageGet(NAME_KEY) || "";
@@ -213,6 +233,7 @@ async function refresh() {
   const today = localDate();
   try {
     const entries = await store.list();
+    lastEntries = entries;
     const pushups = entries.filter((e) => !e.exercise || e.exercise === "pushups");
     const summary = summarize(pushups, today, config);
     const current = summary.weeks.at(-1);
@@ -229,6 +250,7 @@ async function refresh() {
     lastNames = summary.names;
     renderNameSelect();
   } catch (err) {
+    lastEntries = null;
     $("error").textContent = `Could not load the log: ${err.message}`;
     $("error").hidden = false;
   }
@@ -253,8 +275,13 @@ $("log-form").addEventListener("submit", async (event) => {
   const known = lastNames.find((n) => n.toLowerCase() === name.toLowerCase());
   $("submit").disabled = true;
   status.textContent = "Saving…";
+  const entry = { name: known || name, date, reps, exercise: "pushups" };
   try {
-    await store.add({ name: known || name, date, reps, exercise: "pushups" });
+    try {
+      await store.add(entry);
+    } catch (err) {
+      if (!err.unconfirmed || !(await landed(entry))) throw err;
+    }
     currentName = known || name;
     storageSet(NAME_KEY, currentName);
     $("reps").value = "";
@@ -264,7 +291,9 @@ $("log-form").addEventListener("submit", async (event) => {
       : `Saved ${reps} for ${prettyDate(date)}.`;
     await refresh();
   } catch (err) {
-    status.textContent = `Not saved: ${err.message}`;
+    status.textContent = err.unconfirmed
+      ? "Couldn't confirm your reps were saved. Refresh the page and check the board before you log them again."
+      : `Not saved: ${err.message}`;
   } finally {
     $("submit").disabled = false;
   }
