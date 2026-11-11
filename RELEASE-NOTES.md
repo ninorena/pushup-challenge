@@ -11,5 +11,5 @@ Before Monday, Nov 23, do one set of as many good pushups as you can. Log it, an
 - Your weekly target is your test times 6.5. A test of 20 gives 130 a week.
 - A season is 4 weeks. Week 4 is a light week at half your target. Retest in that week.
 - The group goal is the average percent of target. Go over 100% to cover a friend.
-- If you log after 3 or more days off, a ↩ shows next to your name for that day.
+- Coming back is a win. When you log after 3 or more days off, you get a ↩ next to your name for that day.
 - Your old reps stay in Past weeks.

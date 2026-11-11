@@ -90,6 +90,8 @@ export function summarize(entries, today, config) {
   for (let w = 1; w <= currentWeek; w++) {
     const range = weekRange(w, startDate);
     const sw = seasonWeek(w, config);
+    const nextFrom = weekRange(w + 1, startDate).from;
+    const nextSw = seasonWeek(w + 1, config);
     const members = [];
     for (const p of people.values()) {
       if (w < p.firstWeek) continue;
@@ -104,6 +106,8 @@ export function summarize(entries, today, config) {
         target,
         percent: target === null ? null : Math.round((100 * reps) / target),
         testWeek: Boolean(sw) && target === null,
+        // What the target will be next week, so a person who just tested can see it.
+        nextTarget: nextSw ? targetForWeek(p.tests, nextFrom, nextSw.week, config) : null,
         comebacks: p.comebacks.filter((d) => d >= range.from && d <= range.to),
       });
     }

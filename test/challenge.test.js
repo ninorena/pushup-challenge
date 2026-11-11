@@ -65,6 +65,13 @@ test("rule 3: a test in week 4 sets next season's target, not week 4's", () => {
   assert.equal(targetForWeek(tests, "2026-12-07", 1, config), 195); // from the second test
 });
 
+test("rule 3: a person in a test week can see next week's target", () => {
+  const entries = [{ name: "Ana", date: "2026-11-11", reps: 25, exercise: MAX }]; // week 3
+  const ana = member(summarize(entries, "2026-11-11", config), 3, "Ana");
+  assert.equal(ana.target, null);
+  assert.equal(ana.nextTarget, 163);
+});
+
 test("rule 4: the weekly target is the max times weeklyMultiplier, rounded", () => {
   assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-09", 1, config), 130);
   assert.equal(targetForWeek([{ date: "2026-11-01", reps: 7 }], "2026-11-09", 1, config), 46);

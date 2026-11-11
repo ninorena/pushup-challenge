@@ -144,10 +144,11 @@ function renderThisWeek(week) {
   const today = localDate();
   const rows = week.members.map((m) => {
     let status = "";
-    if (m.testWeek) status = el("span", { class: "muted" }, "test week");
+    if ((m.testWeek || m.target === null) && m.nextTarget !== null) status = el("span", { class: "muted" }, `next week: ${m.nextTarget}`);
+    else if (m.testWeek) status = el("span", { class: "muted" }, "test week");
     else if (m.percent !== null) status = el("span", { class: m.percent >= 100 ? "good" : "muted" }, `${m.percent}%`);
     const name = el("td", {}, m.name);
-    if (m.comebacks.includes(today)) name.append(" ", el("span", { class: "badge", title: "Came back today" }, "↩"));
+    if (m.comebacks.includes(today)) name.append(" ", el("span", { class: "badge", title: "Welcome back" }, "↩"));
     return el(
       "tr", {},
       name,
@@ -197,7 +198,7 @@ function renderRules() {
     "A new test changes your target from the next week. Retest when you move to a harder kind of pushup.",
     `Week 4 of each season is a light week: ${light}% of your target. Retest that week to set next season's target.`,
     "The group goal is everyone's percent of target, averaged. Beat yours and you cover a friend's off week.",
-    `Log after ${config.comebackAfterDays} or more days off and you get a ↩ next to your name for the day.`,
+    `Coming back is a win. When you log after ${config.comebackAfterDays} or more days off, you get a ↩ next to your name for that day.`,
     "Skip two weeks in a row and you leave the group goal until you log again. No penalty. Keep your old target, or log a new test.",
     "Logged too many? Log a negative number to fix it.",
   ];
