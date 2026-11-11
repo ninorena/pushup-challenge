@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { weekOf, weekRange, seasonWeek, targetForWeek, comebackDays, summarize } from "../challenge.js";
+import { weekOf, weekRange, seasonWeek, targetForWeek, comebackDays, setSize, summarize } from "../challenge.js";
 
 // Weeks 1 and 2 (Oct 26, Nov 2) are before seasons. Season 1 is weeks 3 to 6
 // (Nov 9 to Dec 6). Season 2 starts in week 7 (Dec 7).
@@ -10,6 +10,7 @@ const config = {
   weeklyMultiplier: 6.5,
   lightWeekShare: 0.5,
   comebackAfterDays: 3,
+  setShare: 0.65,
 };
 const MAX = "pushups-max";
 
@@ -70,6 +71,13 @@ test("rule 3: a person in a test week can see next week's target", () => {
   const ana = member(summarize(entries, "2026-11-11", config), 3, "Ana");
   assert.equal(ana.target, null);
   assert.equal(ana.nextTarget, 163);
+});
+
+test("an everyday set is about 65% of the latest test", () => {
+  assert.equal(setSize([{ date: "2026-11-01", reps: 20 }, { date: "2026-11-10", reps: 25 }], config), 16);
+  assert.equal(setSize([], config), null);
+  const s = summarize([{ name: "Ana", date: "2026-11-10", reps: 20, exercise: MAX }], "2026-11-10", config);
+  assert.equal(s.setSizes.Ana, 13);
 });
 
 test("rule 4: the weekly target is the max times weeklyMultiplier, rounded", () => {

@@ -195,6 +195,7 @@ function renderRules() {
     "Log every set of pushups you do. Pick the kind that suits you: wall, box, knee or full. Do your test in that same kind.",
     "To set your target, log a max-reps test: one set of as many good pushups as you can. Tick the box when you log it. Its reps count too.",
     `Your weekly target is your latest test times ${config.weeklyMultiplier}. A test of 20 gives 130 a week, for example 2 sets of 13 on 5 days.`,
+    `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left. A test of 20 means sets of about 13.`,
     "A new test changes your target from the next week. Retest when you move to a harder kind of pushup.",
     `Week 4 of each season is a light week: ${light}% of your target. Retest that week to set next season's target.`,
     "The group goal is everyone's percent of target, averaged. Beat yours and you cover a friend's off week.",
@@ -226,6 +227,16 @@ function renderWhatsNew() {
 }
 
 let lastNames = [];
+let lastSetSizes = {};
+
+// Under the form: how big an everyday set is for the chosen person.
+function renderSetGuide() {
+  const picked = $("name-select").value;
+  const size = lastSetSizes[picked] ?? null;
+  $("set-guide").textContent = size === null
+    ? "Most sets are not max sets. Stop each set with 2 or 3 reps left in the tank. Save your all-out effort for your test."
+    : `Your sets: about ${size}. Stop with 2 or 3 reps left in the tank. Save your all-out effort for test week.`;
+}
 // The entries from the last successful load, or null if the last load failed.
 let lastEntries = null;
 
@@ -284,7 +295,9 @@ async function refresh() {
     renderThisWeek(current);
     renderHistory(summary.weeks);
     lastNames = summary.names;
+    lastSetSizes = summary.setSizes;
     renderNameSelect();
+    renderSetGuide();
   } catch (err) {
     lastEntries = null;
     $("error").textContent = `Could not load the log: ${err.message}`;
@@ -350,6 +363,7 @@ $("clear-demo").addEventListener("click", () => {
 $("name-select").addEventListener("change", () => {
   currentName = $("name-select").value;
   showNewName();
+  renderSetGuide();
 });
 $("date").value = localDate();
 $("date").max = localDate();

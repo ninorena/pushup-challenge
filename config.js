@@ -14,6 +14,10 @@ export const config = {
   // 6.5 is about 2 sets at 65% of your max, 5 days a week.
   weeklyMultiplier: 6.5,
 
+  // An everyday set is about this share of your latest test, so you stop
+  // with 2 or 3 reps left. Only the test is an all-out set.
+  setShare: 0.65,
+
   // Week 4 of each season is a light week: this share of your usual target.
   lightWeekShare: 0.5,
 

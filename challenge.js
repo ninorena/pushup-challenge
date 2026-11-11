@@ -49,6 +49,14 @@ export function targetForWeek(tests, weekStart, weekInSeason, config) {
   return weekInSeason === SEASON_WEEKS ? Math.max(1, Math.round(target * config.lightWeekShare)) : target;
 }
 
+// The suggested size of an everyday set: a share of the latest test, so most
+// sets stop well short of a max effort. Returns null with no test.
+export function setSize(tests, config) {
+  let latest = null;
+  for (const t of tests) if (t.reps > 0 && (!latest || t.date >= latest.date)) latest = t;
+  return latest ? Math.max(1, Math.round(latest.reps * config.setShare)) : null;
+}
+
 function nameKey(name) {
   return name.trim().toLowerCase();
 }
@@ -128,5 +136,6 @@ export function summarize(entries, today, config) {
     });
   }
 
-  return { currentWeek, weeks, names: [...people.values()].map((p) => p.name).sort() };
+  const setSizes = Object.fromEntries([...people.values()].map((p) => [p.name, setSize(p.tests, config)]));
+  return { currentWeek, weeks, names: [...people.values()].map((p) => p.name).sort(), setSizes };
 }

@@ -8,6 +8,7 @@ export const whatsNew = {
   ],
   items: [
     "Your weekly target is your test times 6.5. A test of 20 gives 130 a week.",
+    "Most sets are not max sets. Do about two-thirds of your max, and stop before it gets hard.",
     "A season is 4 weeks. Week 4 is a light week at half your target. Retest in that week.",
     "The group goal is the average percent of target. Go over 100% to cover a friend.",
     "Coming back is a win. When you log after 3 or more days off, you get a ↩ next to your name for that day.",
