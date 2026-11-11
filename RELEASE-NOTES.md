@@ -2,7 +2,7 @@
 
 What changed on the site, newest first. The newest entry also shows in the "What's new" box on the page (`whats-new.js`).
 
-## 2026-11-16: Max-reps test and seasons
+## 2026-11-11: Max-reps test and seasons
 
 Your target now comes from your own max-reps test, not from your first week.
 
