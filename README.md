@@ -7,14 +7,22 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 ## The rules
 
 - Weeks run Monday to Sunday. Week 1 starts on `startDate` in `config.js`, which must be a Monday.
-- A person's first week is their baseline: the total they did that week.
-- After that, their weekly target grows by 10% of their baseline each week.
-- Every 4th week after the baseline repeats the week before, for recovery.
-- The group goal is the sum of everyone's targets for the week.
-- A person who logs nothing for two weeks in a row leaves the group goal until they log again.
-- Any pushup variation counts as one rep. A negative number fixes a mistake.
+- Seasons are 4 weeks long. Season 1 starts on `seasonStart` in `config.js`, which must be a Monday. Weeks before it show reps only, with no targets.
+- A person sets their target with a max-reps test: one set of as many good pushups as they can, logged with the "max-reps test" box ticked. The Sheet stores it with the exercise `pushups-max`. Its reps count toward the week too.
+- A person's weekly target is their latest test from before the week started, times `weeklyMultiplier` (6.5), rounded. A test of 20 gives 130.
+- A person with no test is in a test week. They show on the board, but they do not count toward the group goal.
+- Week 4 of each season is a light week: `lightWeekShare` (half) of the usual target. People retest that week for the next season.
+- Each person picks their kind of pushup (wall, box, knee or full) and tests in that kind. Every rep counts as one. A person who moves to a harder kind retests.
+- A person's percent is reps divided by target. The group goal is the average percent of everyone with a target. Over 100% counts.
+- A person who logs after `comebackAfterDays` (3) or more days without logging gets a ↩ next to their name that day.
+- A person who logs nothing for two weeks in a row leaves the group goal until they log again. They keep their old target, or log a new test.
+- A negative number fixes a mistake.
 
-To change the growth rate or the recovery week, edit `rules` in `config.js`.
+To change these numbers, edit `config.js`.
+
+## Release notes
+
+Every release adds an entry at the top of `RELEASE-NOTES.md` and copies it into `whats-new.js`. The page shows that entry in a "What's new" box until each person closes it. `npm test` fails if the two do not match.
 
 ## Set up the Google Sheet (one time, about 5 minutes)
 
