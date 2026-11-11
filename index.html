@@ -20,10 +20,12 @@
 
     <div id="demo-banner" class="banner" hidden>
       <p>Demo mode: entries stay in this browser only. Set <code>scriptUrl</code> in <code>config.js</code> to share them.</p>
-      <p>The demo starts today. To test past weeks, add <code>?start=2026-10-05</code> to the address.</p>
+      <p>The demo starts season 1 this week. To test past weeks, add <code>?start=2026-10-05</code> to the address.</p>
       <button type="button" id="clear-demo" class="secondary">Clear demo entries</button>
     </div>
     <p id="error" class="banner error" hidden></p>
+
+    <section id="whats-new" class="card whats-new" aria-live="polite" hidden></section>
 
     <section id="progress" class="card" aria-live="polite"></section>
 
@@ -44,6 +46,8 @@
             <input id="date" name="date" type="date" required>
           </label>
         </div>
+        <p id="set-guide" class="muted"></p>
+        <label class="check"><input id="is-test" type="checkbox"> This was my max-reps test (one set, as many as I can)</label>
         <button type="submit" id="submit">Log reps</button>
         <p id="form-status" class="muted" aria-live="polite"></p>
       </form>
