@@ -3,7 +3,7 @@
 export const whatsNew = {
   date: "2026-11-16",
   paragraphs: [
-    "Season 1 starts today, Monday, Nov 16. It was going to start on Nov 23.",
+    "Season 1 starts today, Monday, Nov 16.",
   ],
   items: [
     "If you logged a max-reps test before today, your target starts this week.",

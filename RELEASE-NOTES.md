@@ -4,7 +4,7 @@ What changed on the site, newest first. The newest entry also shows in the "What
 
 ## 2026-11-16: Season 1 starts today
 
-Season 1 starts today, Monday, Nov 16. It was going to start on Nov 23.
+Season 1 starts today, Monday, Nov 16.
 
 - If you logged a max-reps test before today, your target starts this week.
 - If you have not done a test yet, test this week. Your target starts next Monday.
