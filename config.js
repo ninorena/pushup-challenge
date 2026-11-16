@@ -8,7 +8,7 @@ export const config = {
 
   // The first day of season 1. It must be a Monday. Seasons are 4 weeks long.
   // Weeks before this date show reps only, with no targets.
-  seasonStart: "2026-11-23",
+  seasonStart: "2026-11-16",
 
   // Your weekly target is your latest max-reps test times this number.
   // 6.5 is about 2 sets at 65% of your max, 5 days a week.
