@@ -11,6 +11,5 @@ export const whatsNew = {
     "If you miss a set, that is OK. Do an extra set on another day. Only your weekly total counts.",
     "You can now retest on any day. Your new target starts that day, and the days before keep your old target.",
     "If you have no target yet, a test mid-week gives you a target for the rest of that week.",
-    "A test in week 4, the light week, starts your target the next week.",
   ],
 };
