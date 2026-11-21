@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import { summarize, weekRange, TEST_EXERCISE, SEASON_WEEKS } from "./challenge.js";
+import { summarize, weekRange, weekOf, seasonWeek, TEST_EXERCISE, SEASON_WEEKS } from "./challenge.js";
 import { whatsNew } from "./whats-new.js";
 
 const $ = (id) => document.getElementById(id);
@@ -196,7 +196,7 @@ function renderRules() {
     "To set your target, log a max-reps test: one set of as many good pushups as you can. Tick the box when you log it. Its reps count too.",
     `Your weekly target is your latest test times ${config.weeklyMultiplier}. A test of 20 gives 130 a week, for example 2 sets of 13 on 5 days.`,
     `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left. A test of 20 means sets of about 13.`,
-    "A new test changes your target from the next week. Retest when you move to a harder kind of pushup.",
+    "You can retest any day. Your target changes from that day: the days before it keep your old target. Retest when you move to a harder kind of pushup.",
     `Week 4 of each season is a light week: ${light}% of your target. Retest that week to set next season's target.`,
     "The group goal is everyone's percent of target, averaged. Beat yours and you cover a friend's off week.",
     `Coming back is a win. When you log after ${config.comebackAfterDays} or more days off, you get a ↩ next to your name for that day.`,
@@ -342,7 +342,12 @@ $("log-form").addEventListener("submit", async (event) => {
     $("new-name").value = "";
     $("is-test").checked = false;
     if (date < config.startDate) status.textContent = `Saved, but reps before ${prettyDate(config.startDate)} do not count.`;
-    else if (isTest) status.textContent = `Saved your max-reps test: ${reps}. Your new target starts next week.`;
+    else if (isTest) {
+      const sw = seasonWeek(weekOf(date, config.startDate), config);
+      status.textContent = sw && sw.week < SEASON_WEEKS
+        ? `Saved your max-reps test: ${reps}. Your target changes from ${prettyDate(date)}.`
+        : `Saved your max-reps test: ${reps}. Your new target starts next week.`;
+    }
     else status.textContent = `Saved ${reps} for ${prettyDate(date)}.`;
     await refresh();
   } catch (err) {

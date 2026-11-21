@@ -36,17 +36,39 @@ export function seasonWeek(week, config) {
   return { season: Math.floor(i / SEASON_WEEKS) + 1, week: (i % SEASON_WEEKS) + 1 };
 }
 
-// A person's target for a week. It comes from their latest max-reps test logged
-// before the week starts. Week 4 of a season is a light week.
-// tests: [{ date, reps }] in the order they were logged. Returns null with no test.
-export function targetForWeek(tests, weekStart, weekInSeason, config) {
+// The latest test logged on or before `day`, or null.
+function latestTest(tests, day) {
   let latest = null;
   for (const t of tests) {
-    if (t.reps > 0 && t.date < weekStart && (!latest || t.date >= latest.date)) latest = t;
+    if (t.reps > 0 && t.date <= day && (!latest || t.date >= latest.date)) latest = t;
   }
-  if (!latest) return null;
-  const target = Math.max(1, Math.round(latest.reps * config.weeklyMultiplier));
-  return weekInSeason === SEASON_WEEKS ? Math.max(1, Math.round(target * config.lightWeekShare)) : target;
+  return latest;
+}
+
+// A person's target for a week. tests: [{ date, reps }] in the order they were
+// logged. Returns null with no test.
+// Weeks 1 to 3 of a season: each day counts 1/7 of the weekly rate from the
+// latest test on or before that day. A test on Thursday sets the rate for
+// Thursday to Sunday, and the days before keep the old rate. Days before a
+// person's first test count 0.
+// Week 4 is a light week. Only tests from before the week count, so the retest
+// that week sets next season's target and does not change week 4.
+export function targetForWeek(tests, weekStart, weekInSeason, config) {
+  if (weekInSeason === SEASON_WEEKS) {
+    const latest = latestTest(tests, isoDate(utcDay(weekStart) - DAY_MS));
+    if (!latest) return null;
+    const target = Math.max(1, Math.round(latest.reps * config.weeklyMultiplier));
+    return Math.max(1, Math.round(target * config.lightWeekShare));
+  }
+  let total = 0;
+  let tested = false;
+  for (let i = 0; i < 7; i++) {
+    const latest = latestTest(tests, isoDate(utcDay(weekStart) + i * DAY_MS));
+    if (!latest) continue;
+    tested = true;
+    total += (latest.reps * config.weeklyMultiplier) / 7;
+  }
+  return tested ? Math.max(1, Math.round(total)) : null;
 }
 
 // The suggested size of an everyday set: a share of the latest test, so most

@@ -66,9 +66,9 @@ test("rule 3: a test in week 4 sets next season's target, not week 4's", () => {
   assert.equal(targetForWeek(tests, "2026-12-07", 1, config), 195); // from the second test
 });
 
-test("rule 3: a person in a test week can see next week's target", () => {
-  const entries = [{ name: "Ana", date: "2026-11-11", reps: 25, exercise: MAX }]; // week 3
-  const ana = member(summarize(entries, "2026-11-11", config), 3, "Ana");
+test("rule 3: a person who tests in week 4 can see next week's target", () => {
+  const entries = [{ name: "Ana", date: "2026-12-02", reps: 25, exercise: MAX }]; // week 6, season week 4
+  const ana = member(summarize(entries, "2026-12-02", config), 6, "Ana");
   assert.equal(ana.target, null);
   assert.equal(ana.nextTarget, 163);
 });
@@ -89,15 +89,47 @@ test("rule 5: week 4 of a season is a light week", () => {
   assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-30", 4, config), 65);
 });
 
-test("rule 6: a test mid-season changes the target from the next week", () => {
+test("rule 6: a test mid-week changes the target from the test day on", () => {
+  // Week 3 is Mon Nov 9 to Sun Nov 15. 130 a week before Thursday, 195 a week from Thursday.
+  const tests = [{ date: "2026-11-02", reps: 20 }, { date: "2026-11-12", reps: 30 }];
+  assert.equal(targetForWeek(tests, "2026-11-09", 1, config), 167); // 3/7 of 130 + 4/7 of 195
+  assert.equal(targetForWeek(tests, "2026-11-16", 2, config), 195); // the full new rate next week
+});
+
+test("rule 6: a test on Monday sets the whole week", () => {
+  const tests = [{ date: "2026-11-02", reps: 20 }, { date: "2026-11-09", reps: 30 }];
+  assert.equal(targetForWeek(tests, "2026-11-09", 1, config), 195);
+});
+
+test("rule 6: a lower test lowers the target from the test day on", () => {
   const entries = [
     { name: "Ana", date: "2026-11-05", reps: 20, exercise: MAX }, // before season 1
-    { name: "Ana", date: "2026-11-17", reps: 10, exercise: MAX }, // week 4: moved to a harder form
+    { name: "Ana", date: "2026-11-17", reps: 10, exercise: MAX }, // Tue of week 4: moved to a harder form
     { name: "Ana", date: "2026-11-24", reps: 5, exercise: "pushups" }, // week 5
   ];
   const s = summarize(entries, "2026-11-24", config);
-  assert.equal(member(s, 4, "Ana").target, 130);
+  assert.equal(member(s, 4, "Ana").target, 74); // 1/7 of 130 + 6/7 of 65
   assert.equal(member(s, 5, "Ana").target, 65);
+});
+
+test("rule 6: a first test mid-week gives a target for the rest of the week, and counts in the group goal", () => {
+  const entries = [
+    { name: "Ana", date: "2026-11-02", reps: 20, exercise: MAX }, // week 2
+    { name: "Ana", date: "2026-11-10", reps: 130 }, // week 3: 100%
+    { name: "Ben", date: "2026-11-09", reps: 30 }, // Mon of week 3, before his test
+    { name: "Ben", date: "2026-11-12", reps: 14, exercise: MAX }, // Thu: 4/7 of 91 = 52
+  ];
+  const s = summarize(entries, "2026-11-15", config);
+  const ben = member(s, 3, "Ben");
+  assert.equal(ben.target, 52);
+  assert.equal(ben.testWeek, false);
+  assert.equal(ben.reps, 44);
+  assert.equal(s.weeks[2].groupPercent, Math.round((100 + (100 * 44) / 52) / 2));
+});
+
+test("rule 6: a test after the week ends does not change it", () => {
+  const tests = [{ date: "2026-11-02", reps: 20 }, { date: "2026-11-16", reps: 30 }];
+  assert.equal(targetForWeek(tests, "2026-11-09", 1, config), 130);
 });
 
 test("rule 7: two empty weeks take a person out until they return, with their old target", () => {

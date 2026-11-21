@@ -2,6 +2,15 @@
 
 What changed on the site, newest first. The newest entry also shows in the "What's new" box on the page (`whats-new.js`).
 
+## 2026-11-21: Retest any day
+
+You can now do a max-reps test on any day, and your target changes that same day.
+
+- The days before your test keep your old target. The days from your test on use the new one.
+- Example: your target is 130 a week. On Thursday you test 30, which is 195 a week. This week's target is 167. Next week it is 195.
+- If your first test is mid-week, you get a target for the rest of that week, and you count in the group goal at once.
+- A test in week 4, the light week, still starts the next week.
+
 ## 2026-11-16: Season 1 starts today
 
 Season 1 starts today, Monday, Nov 16.
