@@ -347,24 +347,23 @@ $("log-form").addEventListener("submit", async (event) => {
   const date = $("date").value;
   const isTest = testMode;
   const status = $("form-status");
-  if (!name || !Number.isInteger(reps) || reps === 0 || !date) {
-    status.textContent = "Enter your name, a whole number of reps (not 0) and a day.";
-    return;
-  }
-  if (isTest && reps < 0) {
-    status.textContent = "A max-reps test can't be negative.";
-    return;
-  }
-  if (date > localDate()) {
-    status.textContent = "That day is in the future.";
-    return;
-  }
+  for (const id of ["name-select", "new-name", "reps", "date"]) $(id).removeAttribute("aria-invalid");
+  // Show the message and put the cursor in the field that has the problem.
+  const fail = (message, id) => {
+    status.textContent = message;
+    $(id).setAttribute("aria-invalid", "true");
+    $(id).focus();
+  };
+  if (!name) return fail("Enter your name.", picked === NEW_NAME ? "new-name" : "name-select");
+  if (!Number.isInteger(reps) || reps === 0) return fail("Enter a whole number of reps (not 0).", "reps");
+  if (!date) return fail("Pick a day.", "date");
+  if (isTest && reps < 0) return fail("A max-reps test can't be negative.", "reps");
+  if (date > localDate()) return fail("That day is in the future.", "date");
   // Reuse the spelling already on the board, so "ana" and "Ana" stay one person.
   const known = lastNames.find((n) => n.toLowerCase() === name.toLowerCase());
   // A new name that is already on the board would add reps to that person's row.
   if (picked === NEW_NAME && known) {
-    status.textContent = `${known} is already in the challenge. If that's you, pick your name from the list. If not, add your last initial, for example ${known} R.`;
-    return;
+    return fail(`${known} is already in the challenge. If that's you, pick your name from the list. If not, add your last initial, for example ${known} R.`, "new-name");
   }
   $("submit").disabled = true;
   status.textContent = "Saving…";
