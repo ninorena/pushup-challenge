@@ -65,6 +65,8 @@ form input, form select {
 /* iOS Safari draws date fields with its own size; make them match the others. */
 form input[type="date"] { -webkit-appearance: none; appearance: none; }
 form input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+form label.check { display: flex; align-items: center; gap: 8px; color: var(--text); }
+form label.check input { width: 20px; height: 20px; margin: 0; flex: none; }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 button {
   width: 100%; padding: 12px; font: inherit; font-weight: 600;

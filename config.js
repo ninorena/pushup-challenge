@@ -22,9 +22,6 @@ export const config = {
   // with 2 or 3 reps left. Only the test is an all-out set.
   setShare: 0.65,
 
-  // Week 4 of each season is a light week: this share of your usual target.
-  lightWeekShare: 0.5,
-
   // Log after this many days or more without logging and you get a comeback badge for the day.
   comebackAfterDays: 3,
 };
