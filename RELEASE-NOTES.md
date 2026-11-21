@@ -2,10 +2,11 @@
 
 What changed on the site, newest first. The newest entry also shows in the "What's new" box on the page (`whats-new.js`).
 
-## 2026-11-21: 3 sets a day, starting Monday
+## 2026-11-22: 3 sets a day, starting Monday
 
 From Monday, Nov 23, aim for 3 sets a day, 5 days a week. This week's target stays the same.
 
+- Already did a max-reps test? You're all set. Your new target shows on the board on Monday.
 - Keep each set easy: about two-thirds of your max, with 2 or 3 reps left in the tank. If your test was 20, that's sets of 13.
 - Missed a set? No big deal. Add one tomorrow. Only your weekly total counts.
 - Feeling stronger? Retest any day, and your new target starts that day.

@@ -328,6 +328,11 @@ $("log-form").addEventListener("submit", async (event) => {
   }
   // Reuse the spelling already on the board, so "ana" and "Ana" stay one person.
   const known = lastNames.find((n) => n.toLowerCase() === name.toLowerCase());
+  // A new name that is already on the board would add reps to that person's row.
+  if (picked === NEW_NAME && known) {
+    status.textContent = `${known} is already in the challenge. If that's you, pick your name from the list. If not, add your last initial, for example ${known} R.`;
+    return;
+  }
   $("submit").disabled = true;
   status.textContent = "Saving…";
   const entry = { name: known || name, date, reps, exercise: isTest ? TEST_EXERCISE : "pushups" };

@@ -18,6 +18,7 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 - A person's percent is reps divided by target. The group goal is the average percent of everyone with a target. Over 100% counts.
 - A person who logs after `comebackAfterDays` (3) or more days without logging gets a ↩ next to their name that day.
 - A person who logs nothing for two weeks in a row leaves the group goal until they log again. They keep their old target, or log a new test.
+- Each name is one person. A new name that is already on the board, in any case, is refused. The person picks their name from the list, or adds a last initial.
 - A negative number fixes a mistake.
 
 To change these numbers, edit `config.js`.
