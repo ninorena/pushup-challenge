@@ -45,6 +45,16 @@ function latestTest(tests, day) {
   return latest;
 }
 
+// The weekly multiplier on a day: config.weeklyMultiplier, unless an entry in
+// config.earlierMultipliers covers that day.
+export function multiplierOn(day, config) {
+  let best = null;
+  for (const m of config.earlierMultipliers || []) {
+    if (day <= m.until && (!best || m.until < best.until)) best = m;
+  }
+  return best ? best.weeklyMultiplier : config.weeklyMultiplier;
+}
+
 // A person's target for a week. tests: [{ date, reps }] in the order they were
 // logged. Returns null with no test.
 // Weeks 1 to 3 of a season: each day counts 1/7 of the weekly rate from the
@@ -57,16 +67,17 @@ export function targetForWeek(tests, weekStart, weekInSeason, config) {
   if (weekInSeason === SEASON_WEEKS) {
     const latest = latestTest(tests, isoDate(utcDay(weekStart) - DAY_MS));
     if (!latest) return null;
-    const target = Math.max(1, Math.round(latest.reps * config.weeklyMultiplier));
+    const target = Math.max(1, Math.round(latest.reps * multiplierOn(weekStart, config)));
     return Math.max(1, Math.round(target * config.lightWeekShare));
   }
   let total = 0;
   let tested = false;
   for (let i = 0; i < 7; i++) {
-    const latest = latestTest(tests, isoDate(utcDay(weekStart) + i * DAY_MS));
+    const day = isoDate(utcDay(weekStart) + i * DAY_MS);
+    const latest = latestTest(tests, day);
     if (!latest) continue;
     tested = true;
-    total += (latest.reps * config.weeklyMultiplier) / 7;
+    total += (latest.reps * multiplierOn(day, config)) / 7;
   }
   return tested ? Math.max(1, Math.round(total)) : null;
 }

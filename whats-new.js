@@ -3,12 +3,14 @@
 export const whatsNew = {
   date: "2026-11-21",
   paragraphs: [
-    "You can now do a max-reps test on any day, and your target changes that same day.",
+    "From Monday, Nov 23, your weekly target is 3 sets a day, 5 days a week. This week's target does not change.",
   ],
   items: [
-    "The days before your test keep your old target. The days from your test on use the new one.",
-    "Example: your target is 130 a week. On Thursday you test 30, which is 195 a week. This week's target is 167. Next week it is 195.",
-    "If your first test is mid-week, you get a target for the rest of that week, and you count in the group goal at once.",
-    "A test in week 4, the light week, still starts the next week.",
+    "Each set is about two-thirds of your max-reps test. Stop with 2 or 3 reps left.",
+    "A test of 20 now gives 195 a week: 3 sets of 13 on 5 days.",
+    "If you miss a set, that is OK. Do an extra set on another day. Only your weekly total counts.",
+    "You can now retest on any day. Your new target starts that day, and the days before keep your old target.",
+    "If you have no target yet, a test mid-week gives you a target for the rest of that week.",
+    "A test in week 4, the light week, starts your target the next week.",
   ],
 };

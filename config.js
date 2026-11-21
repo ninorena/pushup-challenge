@@ -11,8 +11,12 @@ export const config = {
   seasonStart: "2026-11-16",
 
   // Your weekly target is your latest max-reps test times this number.
-  // 6.5 is about 2 sets at 65% of your max, 5 days a week.
-  weeklyMultiplier: 6.5,
+  // 9.75 is about 3 sets at 65% of your max, 5 days a week.
+  weeklyMultiplier: 9.75,
+
+  // Earlier multipliers, so past weeks keep the targets people had then.
+  // Each one applies to days up to and including `until`.
+  earlierMultipliers: [{ until: "2026-11-22", weeklyMultiplier: 6.5 }],
 
   // An everyday set is about this share of your latest test, so you stop
   // with 2 or 3 reps left. Only the test is an all-out set.

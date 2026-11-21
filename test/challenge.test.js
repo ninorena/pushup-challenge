@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { weekOf, weekRange, seasonWeek, targetForWeek, comebackDays, setSize, summarize } from "../challenge.js";
+import { weekOf, weekRange, seasonWeek, targetForWeek, comebackDays, setSize, summarize, multiplierOn } from "../challenge.js";
 
 // Weeks 1 and 2 (Oct 26, Nov 2) are before seasons. Season 1 is weeks 3 to 6
 // (Nov 9 to Dec 6). Season 2 starts in week 7 (Dec 7).
@@ -83,6 +83,15 @@ test("an everyday set is about 65% of the latest test", () => {
 test("rule 4: the weekly target is the max times weeklyMultiplier, rounded", () => {
   assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-09", 1, config), 130);
   assert.equal(targetForWeek([{ date: "2026-11-01", reps: 7 }], "2026-11-09", 1, config), 46);
+});
+
+test("rule 4: a new multiplier starts on its date, and past weeks keep the old one", () => {
+  const c = { ...config, weeklyMultiplier: 9.75, earlierMultipliers: [{ until: "2026-11-15", weeklyMultiplier: 6.5 }] };
+  assert.equal(multiplierOn("2026-11-15", c), 6.5);
+  assert.equal(multiplierOn("2026-11-16", c), 9.75);
+  const tests = [{ date: "2026-11-01", reps: 20 }];
+  assert.equal(targetForWeek(tests, "2026-11-09", 1, c), 130); // week before the change
+  assert.equal(targetForWeek(tests, "2026-11-16", 2, c), 195); // week of the change
 });
 
 test("rule 5: week 4 of a season is a light week", () => {
