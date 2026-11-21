@@ -31,7 +31,12 @@
 
     <section class="card">
       <h2>Log pushups</h2>
-      <form id="log-form">
+      <div class="tabs" role="tablist" aria-label="What to log">
+        <button type="button" role="tab" id="tab-reps" aria-selected="true" aria-controls="log-form">Log reps</button>
+        <button type="button" role="tab" id="tab-test" aria-selected="false" aria-controls="log-form" tabindex="-1">Max-reps test</button>
+      </div>
+      <form id="log-form" role="tabpanel" aria-labelledby="tab-reps">
+        <div id="test-guide" hidden></div>
         <label>Name
           <select id="name-select" required></select>
         </label>
@@ -47,7 +52,6 @@
           </label>
         </div>
         <p id="set-guide" class="muted"></p>
-        <label class="check"><input id="is-test" type="checkbox"> This was my max-reps test (one set, as many as I can)</label>
         <button type="submit" id="submit">Log reps</button>
         <p id="form-status" class="muted" aria-live="polite"></p>
       </form>

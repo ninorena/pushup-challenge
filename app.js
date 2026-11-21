@@ -193,7 +193,7 @@ function renderRules() {
   const items = [
     "Weeks run Monday to Sunday. A season is 4 weeks.",
     "Log every set of pushups you do. Pick the kind that suits you: wall, box, knee or full. Do your test in that same kind.",
-    "To set your target, log a max-reps test: one set of as many good pushups as you can. Tick the box when you log it. Its reps count too.",
+    "To set your target, log a max-reps test: one set of as many good pushups as you can. Use the Max-reps test tab. Its reps count too.",
     `Your weekly target is your latest test times ${config.weeklyMultiplier}. A test of 20 gives ${Math.round(20 * config.weeklyMultiplier)} a week, for example 3 sets of 13 on 5 days.`,
     "Only the weekly total counts. If you miss a set, do an extra one on another day.",
     `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left. A test of 20 means sets of about 13.`,
@@ -229,6 +229,37 @@ function renderWhatsNew() {
 
 let lastNames = [];
 let lastSetSizes = {};
+let lastTests = {};
+let testMode = false;
+
+// The two tabs: everyday reps, or a max-reps test. The test tab gets its own
+// instructions, the person's last test and its own button.
+function setMode(test) {
+  testMode = test;
+  for (const [id, on] of [["tab-reps", !test], ["tab-test", test]]) {
+    $(id).setAttribute("aria-selected", String(on));
+    $(id).tabIndex = on ? 0 : -1;
+  }
+  $("log-form").setAttribute("aria-labelledby", test ? "tab-test" : "tab-reps");
+  $("log-form").classList.toggle("test-mode", test);
+  $("test-guide").hidden = !test;
+  $("set-guide").hidden = test;
+  $("submit").textContent = test ? "Save my test" : "Log reps";
+  renderTestGuide();
+}
+
+function renderTestGuide() {
+  if (!testMode) return;
+  const last = lastTests[$("name-select").value] ?? null;
+  const sw = seasonWeek(weekOf(localDate(), config.startDate), config);
+  const starts = sw && sw.week === SEASON_WEEKS
+    ? "This is the light week, so your new target starts next week."
+    : "Your target changes from the day you test.";
+  $("test-guide").replaceChildren(
+    el("p", {}, `One set, as many good pushups as you can. ${starts}`),
+    el("p", { class: "muted" }, last ? `Last test: ${last.reps} on ${prettyDate(last.date)}` : "No test yet."),
+  );
+}
 
 // Under the form: how big an everyday set is for the chosen person.
 function renderSetGuide() {
@@ -236,7 +267,7 @@ function renderSetGuide() {
   const size = lastSetSizes[picked] ?? null;
   $("set-guide").textContent = size === null
     ? "Most sets are not max sets. Stop each set with 2 or 3 reps left in the tank. Save your all-out effort for your test."
-    : `Your sets: about ${size}. Stop with 2 or 3 reps left in the tank. Save your all-out effort for test week.`;
+    : `Your sets: about ${size}. Stop with 2 or 3 reps left in the tank. Save your all-out effort for your test.`;
 }
 // The entries from the last successful load, or null if the last load failed.
 let lastEntries = null;
@@ -297,8 +328,10 @@ async function refresh() {
     renderHistory(summary.weeks);
     lastNames = summary.names;
     lastSetSizes = summary.setSizes;
+    lastTests = summary.lastTests;
     renderNameSelect();
     renderSetGuide();
+    renderTestGuide();
   } catch (err) {
     lastEntries = null;
     $("error").textContent = `Could not load the log: ${err.message}`;
@@ -312,7 +345,7 @@ $("log-form").addEventListener("submit", async (event) => {
   const name = picked === NEW_NAME ? $("new-name").value.trim() : picked;
   const reps = Number($("reps").value);
   const date = $("date").value;
-  const isTest = $("is-test").checked;
+  const isTest = testMode;
   const status = $("form-status");
   if (!name || !Number.isInteger(reps) || reps === 0 || !date) {
     status.textContent = "Enter your name, a whole number of reps (not 0) and a day.";
@@ -346,7 +379,7 @@ $("log-form").addEventListener("submit", async (event) => {
     storageSet(NAME_KEY, currentName);
     $("reps").value = "";
     $("new-name").value = "";
-    $("is-test").checked = false;
+    setMode(false);
     if (date < config.startDate) status.textContent = `Saved, but reps before ${prettyDate(config.startDate)} do not count.`;
     else if (isTest) {
       const sw = seasonWeek(weekOf(date, config.startDate), config);
@@ -375,7 +408,19 @@ $("name-select").addEventListener("change", () => {
   currentName = $("name-select").value;
   showNewName();
   renderSetGuide();
+  renderTestGuide();
 });
+$("tab-reps").addEventListener("click", () => setMode(false));
+$("tab-test").addEventListener("click", () => setMode(true));
+// Arrow keys move between the tabs, as in any tab list.
+for (const id of ["tab-reps", "tab-test"]) {
+  $(id).addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    const next = id === "tab-reps" ? "tab-test" : "tab-reps";
+    setMode(next === "tab-test");
+    $(next).focus();
+  });
+}
 $("date").value = localDate();
 $("date").max = localDate();
 renderRules();

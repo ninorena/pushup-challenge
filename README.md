@@ -8,7 +8,7 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 
 - Weeks run Monday to Sunday. Week 1 starts on `startDate` in `config.js`, which must be a Monday.
 - Seasons are 4 weeks long. Season 1 starts on `seasonStart` in `config.js`, which must be a Monday. Weeks before it show reps only, with no targets.
-- A person sets their target with a max-reps test: one set of as many good pushups as they can, logged with the "max-reps test" box ticked. The Sheet stores it with the exercise `pushups-max`. Its reps count toward the week too.
+- A person sets their target with a max-reps test: one set of as many good pushups as they can, logged on the "Max-reps test" tab. The Sheet stores it with the exercise `pushups-max`. Its reps count toward the week too.
 - A person's weekly target is their latest test times `weeklyMultiplier` (9.75), rounded. A test of 20 gives 195: 3 sets of 13 on 5 days. Before Nov 23 the multiplier was 6.5, and `earlierMultipliers` in `config.js` keeps past weeks at that rate.
 - A person can retest any day. The new target counts from the test day, and the days before keep the old one. Each day is 1/7 of the week. Example: 195 a week, then a test of 30 (293 a week) on Thursday, gives 3/7 × 195 + 4/7 × 293 = 251 that week. A lower test lowers the target the same way.
 - A person whose first test is mid-week gets a target for the rest of that week and counts toward the group goal at once.
