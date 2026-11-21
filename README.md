@@ -13,7 +13,7 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 - A person can retest any day. The new target counts from the test day, and the days before keep the old one. Each day is 1/7 of the week. Example: 195 a week, then a test of 30 (293 a week) on Thursday, gives 3/7 × 195 + 4/7 × 293 = 251 that week. A lower test lowers the target the same way.
 - A person whose first test is mid-week gets a target for the rest of that week and counts toward the group goal at once.
 - A person with no test is in a test week. They show on the board, but they do not count toward the group goal.
-- Week 4 of each season is a light week: `lightWeekShare` (half) of the usual target. People retest that week for the next season. A test in week 4 does not change week 4's target: it starts the next week.
+- Week 4 of each season is a retest week. Its target is a normal week's target. People retest that week, and the new target starts on the test day, as with any retest.
 - Each person picks their kind of pushup (wall, box, knee or full) and tests in that kind. Every rep counts as one. A person who moves to a harder kind retests.
 - A person's percent is reps divided by target. The group goal is the average percent of everyone with a target. Over 100% counts.
 - A person who logs after `comebackAfterDays` (3) or more days without logging gets a ↩ next to their name that day.

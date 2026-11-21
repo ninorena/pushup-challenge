@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import { summarize, weekRange, weekOf, seasonWeek, TEST_EXERCISE, SEASON_WEEKS } from "./challenge.js";
+import { summarize, weekRange, TEST_EXERCISE, SEASON_WEEKS } from "./challenge.js";
 import { whatsNew } from "./whats-new.js";
 
 const $ = (id) => document.getElementById(id);
@@ -127,7 +127,7 @@ function renderProgress(week) {
     el("p", { class: week.hit ? "good" : "muted" }, week.hit ? "Goal reached. Everything else is extra." : "Every rep over your target covers a friend."),
   );
   if (week.seasonWeek === SEASON_WEEKS) {
-    box.append(el("p", { class: "muted" }, "Light week: half your usual target. Retest this week to set next season's target."));
+    box.append(el("p", { class: "muted" }, "Retest week: log a max-reps test this week. Your target changes from the day you test."));
   }
   if (testing > 0) {
     box.append(el("p", { class: "muted" }, `${testing} ${testing === 1 ? "person is" : "people are"} in their test week.`));
@@ -189,7 +189,6 @@ function renderHistory(weeks) {
 }
 
 function renderRules() {
-  const light = Math.round(config.lightWeekShare * 100);
   const items = [
     "Weeks run Monday to Sunday. A season is 4 weeks.",
     "Log every set of pushups you do. Pick the kind that suits you: wall, box, knee or full. Do your test in that same kind.",
@@ -198,7 +197,7 @@ function renderRules() {
     "Only the weekly total counts. If you miss a set, do an extra one on another day.",
     `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left. A test of 20 means sets of about 13.`,
     "You can retest any day. Your target changes from that day: the days before it keep your old target. Retest when you move to a harder kind of pushup.",
-    `Week 4 of each season is a light week: ${light}% of your target. Retest that week. The new test sets next season's target and does not change week 4.`,
+    "Week 4 of each season is a retest week. Do a max-reps test that week to set your target for the next season.",
     "The group goal is everyone's percent of target, averaged. Beat yours and you cover a friend's off week.",
     `Coming back is a win. When you log after ${config.comebackAfterDays} or more days off, you get a ↩ next to your name for that day.`,
     "Skip two weeks in a row and you leave the group goal until you log again. No penalty. Keep your old target, or log a new test.",
@@ -259,12 +258,8 @@ $("take-off").addEventListener("change", renderSubmitLabel);
 function renderTestGuide() {
   if (!testMode) return;
   const last = lastTests[$("name-select").value] ?? null;
-  const sw = seasonWeek(weekOf(localDate(), config.startDate), config);
-  const starts = sw && sw.week === SEASON_WEEKS
-    ? "This is the light week, so your new target starts next week."
-    : "Your target changes from the day you test.";
   $("test-guide").replaceChildren(
-    el("p", {}, `One set, as many good pushups as you can. ${starts}`),
+    el("p", {}, "One set, as many good pushups as you can. Your target changes from the day you test."),
     el("p", { class: "muted" }, last ? `Last test: ${last.reps} on ${prettyDate(last.date)}` : "No test yet."),
   );
 }
@@ -392,12 +387,7 @@ $("log-form").addEventListener("submit", async (event) => {
     $("take-off").checked = false;
     setMode(false);
     if (date < config.startDate) status.textContent = `Saved, but reps before ${prettyDate(config.startDate)} do not count.`;
-    else if (isTest) {
-      const sw = seasonWeek(weekOf(date, config.startDate), config);
-      status.textContent = sw && sw.week < SEASON_WEEKS
-        ? `Saved your max-reps test: ${reps}. Your target changes from ${prettyDate(date)}.`
-        : `Saved your max-reps test: ${reps}. Your new target starts next week.`;
-    }
+    else if (isTest) status.textContent = `Saved your max-reps test: ${reps}. Your target changes from ${prettyDate(date)}.`;
     else if (reps < 0) status.textContent = `Took off ${-reps} for ${prettyDate(date)}.`;
     else status.textContent = `Saved ${reps} for ${prettyDate(date)}.`;
     await refresh();

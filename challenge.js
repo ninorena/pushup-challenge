@@ -57,19 +57,12 @@ export function multiplierOn(day, config) {
 
 // A person's target for a week. tests: [{ date, reps }] in the order they were
 // logged. Returns null with no test.
-// Weeks 1 to 3 of a season: each day counts 1/7 of the weekly rate from the
-// latest test on or before that day. A test on Thursday sets the rate for
+// Each day counts 1/7 of the weekly rate from the latest test on or before
+// that day. A test on Thursday sets the rate for
 // Thursday to Sunday, and the days before keep the old rate. Days before a
 // person's first test count 0.
-// Week 4 is a light week. Only tests from before the week count, so the retest
-// that week sets next season's target and does not change week 4.
-export function targetForWeek(tests, weekStart, weekInSeason, config) {
-  if (weekInSeason === SEASON_WEEKS) {
-    const latest = latestTest(tests, isoDate(utcDay(weekStart) - DAY_MS));
-    if (!latest) return null;
-    const target = Math.max(1, Math.round(latest.reps * multiplierOn(weekStart, config)));
-    return Math.max(1, Math.round(target * config.lightWeekShare));
-  }
+// Week 4 of a season is a normal week. It is when people retest.
+export function targetForWeek(tests, weekStart, config) {
   let total = 0;
   let tested = false;
   for (let i = 0; i < 7; i++) {
@@ -140,7 +133,7 @@ export function summarize(entries, today, config) {
       // last week. Two empty weeks in a row take them out until they log again.
       if (!p.weeks.has(w) && !p.weeks.has(w - 1)) continue;
       const reps = p.weeks.get(w) || 0;
-      const target = sw ? targetForWeek(p.tests, range.from, sw.week, config) : null;
+      const target = sw ? targetForWeek(p.tests, range.from, config) : null;
       members.push({
         name: p.name,
         reps,
@@ -148,7 +141,7 @@ export function summarize(entries, today, config) {
         percent: target === null ? null : Math.round((100 * reps) / target),
         testWeek: Boolean(sw) && target === null,
         // What the target will be next week, so a person who just tested can see it.
-        nextTarget: nextSw ? targetForWeek(p.tests, nextFrom, nextSw.week, config) : null,
+        nextTarget: nextSw ? targetForWeek(p.tests, nextFrom, config) : null,
         comebacks: p.comebacks.filter((d) => d >= range.from && d <= range.to),
       });
     }

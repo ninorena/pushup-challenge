@@ -8,7 +8,6 @@ const config = {
   startDate: "2026-10-26",
   seasonStart: "2026-11-09",
   weeklyMultiplier: 6.5,
-  lightWeekShare: 0.5,
   comebackAfterDays: 3,
   setShare: 0.65,
 };
@@ -60,16 +59,17 @@ test("rule 3: no test means no target, and the person is in a test week", () => 
   assert.equal(s.weeks[2].groupPercent, null);
 });
 
-test("rule 3: a test in week 4 sets next season's target, not week 4's", () => {
+test("rule 3: a test in week 4 changes the target from the test day, like any retest", () => {
+  // Week 6 (Nov 30 to Dec 6) is season week 4. Test on Tuesday Dec 1.
   const tests = [{ date: "2026-11-02", reps: 20 }, { date: "2026-12-01", reps: 30 }];
-  assert.equal(targetForWeek(tests, "2026-11-30", 4, config), 65); // from the first test, light
-  assert.equal(targetForWeek(tests, "2026-12-07", 1, config), 195); // from the second test
+  assert.equal(targetForWeek(tests, "2026-11-30", config), 186); // 1/7 of 130 + 6/7 of 195
+  assert.equal(targetForWeek(tests, "2026-12-07", config), 195); // next season, from the second test
 });
 
 test("rule 3: a person who tests in week 4 can see next week's target", () => {
   const entries = [{ name: "Ana", date: "2026-12-02", reps: 25, exercise: MAX }]; // week 6, season week 4
   const ana = member(summarize(entries, "2026-12-02", config), 6, "Ana");
-  assert.equal(ana.target, null);
+  assert.equal(ana.target, 116); // 5 of 7 days at 163 a week
   assert.equal(ana.nextTarget, 163);
 });
 
@@ -92,8 +92,8 @@ test("the summary gives each person's latest test", () => {
 });
 
 test("rule 4: the weekly target is the max times weeklyMultiplier, rounded", () => {
-  assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-09", 1, config), 130);
-  assert.equal(targetForWeek([{ date: "2026-11-01", reps: 7 }], "2026-11-09", 1, config), 46);
+  assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-09", config), 130);
+  assert.equal(targetForWeek([{ date: "2026-11-01", reps: 7 }], "2026-11-09", config), 46);
 });
 
 test("rule 4: a new multiplier starts on its date, and past weeks keep the old one", () => {
@@ -101,24 +101,24 @@ test("rule 4: a new multiplier starts on its date, and past weeks keep the old o
   assert.equal(multiplierOn("2026-11-15", c), 6.5);
   assert.equal(multiplierOn("2026-11-16", c), 9.75);
   const tests = [{ date: "2026-11-01", reps: 20 }];
-  assert.equal(targetForWeek(tests, "2026-11-09", 1, c), 130); // week before the change
-  assert.equal(targetForWeek(tests, "2026-11-16", 2, c), 195); // week of the change
+  assert.equal(targetForWeek(tests, "2026-11-09", c), 130); // week before the change
+  assert.equal(targetForWeek(tests, "2026-11-16", c), 195); // week of the change
 });
 
-test("rule 5: week 4 of a season is a light week", () => {
-  assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-30", 4, config), 65);
+test("rule 5: week 4 of a season has a normal target", () => {
+  assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-30", config), 130);
 });
 
 test("rule 6: a test mid-week changes the target from the test day on", () => {
   // Week 3 is Mon Nov 9 to Sun Nov 15. 130 a week before Thursday, 195 a week from Thursday.
   const tests = [{ date: "2026-11-02", reps: 20 }, { date: "2026-11-12", reps: 30 }];
-  assert.equal(targetForWeek(tests, "2026-11-09", 1, config), 167); // 3/7 of 130 + 4/7 of 195
-  assert.equal(targetForWeek(tests, "2026-11-16", 2, config), 195); // the full new rate next week
+  assert.equal(targetForWeek(tests, "2026-11-09", config), 167); // 3/7 of 130 + 4/7 of 195
+  assert.equal(targetForWeek(tests, "2026-11-16", config), 195); // the full new rate next week
 });
 
 test("rule 6: a test on Monday sets the whole week", () => {
   const tests = [{ date: "2026-11-02", reps: 20 }, { date: "2026-11-09", reps: 30 }];
-  assert.equal(targetForWeek(tests, "2026-11-09", 1, config), 195);
+  assert.equal(targetForWeek(tests, "2026-11-09", config), 195);
 });
 
 test("rule 6: a lower test lowers the target from the test day on", () => {
@@ -149,7 +149,7 @@ test("rule 6: a first test mid-week gives a target for the rest of the week, and
 
 test("rule 6: a test after the week ends does not change it", () => {
   const tests = [{ date: "2026-11-02", reps: 20 }, { date: "2026-11-16", reps: 30 }];
-  assert.equal(targetForWeek(tests, "2026-11-09", 1, config), 130);
+  assert.equal(targetForWeek(tests, "2026-11-09", config), 130);
 });
 
 test("rule 7: two empty weeks take a person out until they return, with their old target", () => {
