@@ -9,9 +9,11 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 - Weeks run Monday to Sunday. Week 1 starts on `startDate` in `config.js`, which must be a Monday.
 - Seasons are 4 weeks long. Season 1 starts on `seasonStart` in `config.js`, which must be a Monday. Weeks before it show reps only, with no targets.
 - A person sets their target with a max-reps test: one set of as many good pushups as they can, logged with the "max-reps test" box ticked. The Sheet stores it with the exercise `pushups-max`. Its reps count toward the week too.
-- A person's weekly target is their latest test from before the week started, times `weeklyMultiplier` (6.5), rounded. A test of 20 gives 130.
+- A person's weekly target is their latest test times `weeklyMultiplier` (9.75), rounded. A test of 20 gives 195: 3 sets of 13 on 5 days. Before Nov 23 the multiplier was 6.5, and `earlierMultipliers` in `config.js` keeps past weeks at that rate.
+- A person can retest any day. The new target counts from the test day, and the days before keep the old one. Each day is 1/7 of the week. Example: 195 a week, then a test of 30 (293 a week) on Thursday, gives 3/7 × 195 + 4/7 × 293 = 251 that week. A lower test lowers the target the same way.
+- A person whose first test is mid-week gets a target for the rest of that week and counts toward the group goal at once.
 - A person with no test is in a test week. They show on the board, but they do not count toward the group goal.
-- Week 4 of each season is a light week: `lightWeekShare` (half) of the usual target. People retest that week for the next season.
+- Week 4 of each season is a light week: `lightWeekShare` (half) of the usual target. People retest that week for the next season. A test in week 4 does not change week 4's target: it starts the next week.
 - Each person picks their kind of pushup (wall, box, knee or full) and tests in that kind. Every rep counts as one. A person who moves to a harder kind retests.
 - A person's percent is reps divided by target. The group goal is the average percent of everyone with a target. Over 100% counts.
 - A person who logs after `comebackAfterDays` (3) or more days without logging gets a ↩ next to their name that day.
