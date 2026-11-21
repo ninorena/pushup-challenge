@@ -198,11 +198,11 @@ function renderRules() {
     "Only the weekly total counts. If you miss a set, do an extra one on another day.",
     `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left. A test of 20 means sets of about 13.`,
     "You can retest any day. Your target changes from that day: the days before it keep your old target. Retest when you move to a harder kind of pushup.",
-    `Week 4 of each season is a light week: ${light}% of your target. Retest that week to set next season's target.`,
+    `Week 4 of each season is a light week: ${light}% of your target. Retest that week. The new test sets next season's target and does not change week 4.`,
     "The group goal is everyone's percent of target, averaged. Beat yours and you cover a friend's off week.",
     `Coming back is a win. When you log after ${config.comebackAfterDays} or more days off, you get a ↩ next to your name for that day.`,
     "Skip two weeks in a row and you leave the group goal until you log again. No penalty. Keep your old target, or log a new test.",
-    "Logged too many? Log a negative number to fix it.",
+    "Logged too many? Tick 'Take off reps' and log the extra.",
   ];
   $("rules").replaceChildren(...items.map((t) => el("li", {}, t)));
 }
@@ -244,9 +244,17 @@ function setMode(test) {
   $("log-form").classList.toggle("test-mode", test);
   $("test-guide").hidden = !test;
   $("set-guide").hidden = test;
-  $("submit").textContent = test ? "Save my test" : "Log reps";
+  $("take-off-label").hidden = test;
+  if (test) $("take-off").checked = false;
+  renderSubmitLabel();
   renderTestGuide();
 }
+
+function renderSubmitLabel() {
+  $("submit").textContent = testMode ? "Save my test" : $("take-off").checked ? "Take off reps" : "Log reps";
+}
+
+$("take-off").addEventListener("change", renderSubmitLabel);
 
 function renderTestGuide() {
   if (!testMode) return;
@@ -343,7 +351,10 @@ $("log-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const picked = $("name-select").value;
   const name = picked === NEW_NAME ? $("new-name").value.trim() : picked;
-  const reps = Number($("reps").value);
+  const typed = Number($("reps").value);
+  const takeOff = !testMode && $("take-off").checked;
+  // Phone number pads have no minus key, so the checkbox makes the number negative.
+  const reps = takeOff ? -Math.abs(typed) : typed;
   const date = $("date").value;
   const isTest = testMode;
   const status = $("form-status");
@@ -355,7 +366,7 @@ $("log-form").addEventListener("submit", async (event) => {
     $(id).focus();
   };
   if (!name) return fail("Enter your name.", picked === NEW_NAME ? "new-name" : "name-select");
-  if (!Number.isInteger(reps) || reps === 0) return fail("Enter a whole number of reps (not 0).", "reps");
+  if (!Number.isInteger(typed) || typed === 0) return fail("Enter a whole number of reps (not 0).", "reps");
   if (!date) return fail("Pick a day.", "date");
   if (isTest && reps < 0) return fail("A max-reps test can't be negative.", "reps");
   if (date > localDate()) return fail("That day is in the future.", "date");
@@ -378,6 +389,7 @@ $("log-form").addEventListener("submit", async (event) => {
     storageSet(NAME_KEY, currentName);
     $("reps").value = "";
     $("new-name").value = "";
+    $("take-off").checked = false;
     setMode(false);
     if (date < config.startDate) status.textContent = `Saved, but reps before ${prettyDate(config.startDate)} do not count.`;
     else if (isTest) {
@@ -386,6 +398,7 @@ $("log-form").addEventListener("submit", async (event) => {
         ? `Saved your max-reps test: ${reps}. Your target changes from ${prettyDate(date)}.`
         : `Saved your max-reps test: ${reps}. Your new target starts next week.`;
     }
+    else if (reps < 0) status.textContent = `Took off ${-reps} for ${prettyDate(date)}.`;
     else status.textContent = `Saved ${reps} for ${prettyDate(date)}.`;
     await refresh();
   } catch (err) {
