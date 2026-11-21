@@ -170,5 +170,7 @@ export function summarize(entries, today, config) {
   }
 
   const setSizes = Object.fromEntries([...people.values()].map((p) => [p.name, setSize(p.tests, config)]));
-  return { currentWeek, weeks, names: [...people.values()].map((p) => p.name).sort(), setSizes };
+  // Each person's latest test, { date, reps }, or null with no test.
+  const lastTests = Object.fromEntries([...people.values()].map((p) => [p.name, latestTest(p.tests, "9999-12-31")]));
+  return { currentWeek, weeks, names: [...people.values()].map((p) => p.name).sort(), setSizes, lastTests };
 }

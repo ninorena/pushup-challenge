@@ -82,8 +82,18 @@ tr:last-child td { border-bottom: 0; }
 details summary { cursor: pointer; font-weight: 600; }
 details ul { padding-left: 20px; margin: 12px 0 0; }
 details li { margin-bottom: 6px; }
-form label.check { display: flex; gap: 8px; align-items: center; }
-form label.check input { width: auto; height: auto; margin: 0; }
 .badge { color: var(--accent); font-weight: 600; }
 .whats-new { border-left: 4px solid var(--accent); }
 .whats-new p, .whats-new li { font-size: 0.95rem; }
+
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 16px; background: var(--bar); border-radius: 10px; }
+.tabs button { padding: 8px; color: var(--muted); background: transparent; border-radius: 7px; }
+.tabs button[aria-selected="true"] { color: var(--text); background: var(--card); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.tabs button:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#test-guide { margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid var(--warn); background: var(--bg); border-radius: 0 8px 8px 0; }
+#test-guide p { margin: 0; }
+#test-guide p + p { margin-top: 4px; }
+form.test-mode button[type="submit"] { background: var(--warn); }
+@media (prefers-color-scheme: dark) {
+  form.test-mode button[type="submit"] { color: #151514; }
+}

@@ -80,6 +80,17 @@ test("an everyday set is about 65% of the latest test", () => {
   assert.equal(s.setSizes.Ana, 13);
 });
 
+test("the summary gives each person's latest test", () => {
+  const entries = [
+    { name: "Ana", date: "2026-11-02", reps: 20, exercise: MAX },
+    { name: "Ana", date: "2026-11-10", reps: 24, exercise: MAX },
+    { name: "Ben", date: "2026-11-10", reps: 30, exercise: "pushups" },
+  ];
+  const s = summarize(entries, "2026-11-10", config);
+  assert.deepEqual(s.lastTests.Ana, { date: "2026-11-10", reps: 24 });
+  assert.equal(s.lastTests.Ben, null);
+});
+
 test("rule 4: the weekly target is the max times weeklyMultiplier, rounded", () => {
   assert.equal(targetForWeek([{ date: "2026-11-01", reps: 20 }], "2026-11-09", 1, config), 130);
   assert.equal(targetForWeek([{ date: "2026-11-01", reps: 7 }], "2026-11-09", 1, config), 46);
