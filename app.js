@@ -215,10 +215,10 @@ function renderWhatsNew() {
     return;
   }
   box.replaceChildren(
-    el("h2", {}, `What's new · ${prettyDate(whatsNew.date)}`),
+    el("h2", {}, whatsNew.title || `What's new · ${prettyDate(whatsNew.date)}`),
     ...whatsNew.paragraphs.map((t) => el("p", {}, t)),
     el("ul", {}, ...whatsNew.items.map((t) => el("li", {}, t))),
-    el("button", { type: "button", id: "close-whats-new", class: "secondary" }, "Got it"),
+    el("button", { type: "button", id: "close-whats-new", class: whatsNew.button ? "" : "secondary" }, whatsNew.button || "Got it"),
   );
   box.hidden = false;
   $("close-whats-new").addEventListener("click", () => {
