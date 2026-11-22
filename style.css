@@ -87,6 +87,9 @@ tr:last-child td { border-bottom: 0; }
 details summary { cursor: pointer; font-weight: 600; }
 details ul { padding-left: 20px; margin: 12px 0 0; }
 details li { margin-bottom: 6px; }
+details ol { padding-left: 20px; margin: 12px 0 0; }
+details h3 { margin: 16px 0 0; font-size: 1rem; }
+#how-intro { margin: 12px 0 0; }
 .badge { color: var(--accent); font-weight: 600; }
 .whats-new { border-left: 4px solid var(--accent); }
 .whats-new p, .whats-new li { font-size: 0.95rem; }
