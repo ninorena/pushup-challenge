@@ -188,22 +188,44 @@ function renderHistory(weeks) {
   box.append(table([["Week"], ["Reps", "num"], ["Goal", "num"], ["", "num"]], rows));
 }
 
+// The "How it works" box: what the challenge is, the first three steps, then the rules.
 function renderRules() {
-  const items = [
-    "Weeks run Monday to Sunday. A season is 4 weeks.",
-    "Log every set of pushups you do. Pick the kind that suits you: wall, box, knee or full. Do your test in that same kind.",
-    "To set your target, log a max-reps test: one set of as many good pushups as you can. Use the Max-reps test tab. Its reps count too.",
-    `Your weekly target is your latest test times ${config.weeklyMultiplier}. A test of 20 gives ${Math.round(20 * config.weeklyMultiplier)} a week, for example 3 sets of 13 on 5 days.`,
-    "Only the weekly total counts. If you miss a set, do an extra one on another day.",
-    `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left. A test of 20 means sets of about 13.`,
-    "You can retest any day. Your target changes from that day: the days before it keep your old target. Retest when you move to a harder kind of pushup.",
-    "Week 4 of each season is a retest week. Do a max-reps test that week to set your target for the next season.",
-    "The group goal is everyone's percent of target, averaged. Beat yours and you cover a friend's off week.",
-    `Coming back is a win. When you log after ${config.comebackAfterDays} or more days off, you get a ↩ next to your name for that day.`,
-    "Skip two weeks in a row and you leave the group goal until you log again. No penalty. Keep your old target, or log a new test.",
-    "Logged too many? Tick 'Take off reps' and log the extra.",
+  const perTest = Math.round(20 * config.weeklyMultiplier);
+  const perSet = Math.round(20 * config.setShare);
+  $("how-intro").textContent =
+    "Everyone gets a weekly pushup target that fits them. The group tries to hit its targets together.";
+  const steps = [
+    "Choose your name in the form below. If you are not on the list, choose \"I'm new\".",
+    "Choose your kind of pushup: wall, box, knee or full. Do one set of as many good pushups as you can. Log it on the Max-reps test tab.",
+    `Your test sets your weekly target. A test of 20 gives ${perTest} a week, for example 3 sets of ${perSet} on 5 days. Log every set on the Log reps tab.`,
   ];
-  $("rules").replaceChildren(...items.map((t) => el("li", {}, t)));
+  const rules = [
+    "Only the weekly total counts. If you miss a set, do an extra one on another day.",
+    `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left.`,
+    "Weeks run Monday to Sunday. A season is 4 weeks. In week 4, do a new test to set your target for the next season.",
+    "You can retest any day. Your new target starts that day. Retest when you move to a harder kind of pushup.",
+    "The group goal is the average of everyone's percent of target. Beat yours and you cover a friend's off week.",
+    `Coming back is a win. When you log after ${config.comebackAfterDays} or more days off, you get a ↩ next to your name for that day.`,
+    "Skip two weeks in a row and you leave the group goal until you log again. No penalty.",
+    "Logged too many? Tick \"Take off reps\" and log the extra.",
+  ];
+  $("first-steps").replaceChildren(...steps.map((t) => el("li", {}, t)));
+  $("rules").replaceChildren(...rules.map((t) => el("li", {}, t)));
+}
+
+// Open "How it works" for a person with no max-reps test yet. Close it again only
+// if this code opened it, so a box the person opened stays open.
+let howOpenedForNewcomer = false;
+function syncHowItWorks() {
+  const box = $("how-it-works");
+  const hasTest = Boolean(lastTests[$("name-select").value]);
+  if (!hasTest) {
+    if (!box.open) howOpenedForNewcomer = true;
+    box.open = true;
+  } else if (howOpenedForNewcomer) {
+    box.open = false;
+    howOpenedForNewcomer = false;
+  }
 }
 
 // The latest release note, until this person closes it.
@@ -335,6 +357,7 @@ async function refresh() {
     renderNameSelect();
     renderSetGuide();
     renderTestGuide();
+    syncHowItWorks();
   } catch (err) {
     lastEntries = null;
     $("error").textContent = `Could not load the log: ${err.message}`;
@@ -411,6 +434,7 @@ $("name-select").addEventListener("change", () => {
   showNewName();
   renderSetGuide();
   renderTestGuide();
+  syncHowItWorks();
 });
 $("tab-reps").addEventListener("click", () => setMode(false));
 $("tab-test").addEventListener("click", () => setMode(true));
