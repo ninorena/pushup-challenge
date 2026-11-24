@@ -7,21 +7,40 @@ const NAME_KEY = "pushup-challenge:name";
 const DEMO_KEY = "pushup-challenge:demo-entries";
 const SEEN_KEY = "pushup-challenge:whats-new-seen";
 
-// Demo mode starts week 1 and season 1 on this week's Monday, so logging shows results right away.
-// ?start=YYYY-MM-DD moves both to test past weeks.
-if (!config.scriptUrl) {
-  const startOverride = new URLSearchParams(location.search).get("start");
-  config.startDate = /^\d{4}-\d{2}-\d{2}$/.test(startOverride || "") ? startOverride : thisMonday();
-  config.seasonStart = config.startDate;
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const params = new URLSearchParams(location.search);
+// Demo mode only: ?today=YYYY-MM-DD shows the page as it will look on that day.
+const todayOverride = !config.scriptUrl && ISO_DAY.test(params.get("today") || "") ? params.get("today") : null;
+
+function now() {
+  if (!todayOverride) return new Date();
+  const [y, m, d] = todayOverride.split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
-function localDate(d = new Date()) {
+// Demo mode: the preview script can put a demo-seed.json file next to the page.
+// It holds the starting entries, the real start dates and the test people to view the page as.
+let demoSeed = null;
+if (!config.scriptUrl) {
+  try {
+    const res = await fetch("demo-seed.json");
+    if (res.ok) demoSeed = await res.json();
+  } catch { /* no seed file: the demo starts empty */ }
+  // With no seed file, the demo starts week 1 and season 1 on this week's Monday, so logging shows results right away.
+  // ?start=YYYY-MM-DD moves both to test past weeks.
+  const startOverride = params.get("start");
+  if (ISO_DAY.test(startOverride || "")) config.startDate = config.seasonStart = startOverride;
+  else if (demoSeed) ({ startDate: config.startDate, seasonStart: config.seasonStart } = demoSeed);
+  else config.startDate = config.seasonStart = thisMonday();
+}
+
+function localDate(d = now()) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function thisMonday() {
-  const d = new Date();
+  const d = now();
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   return localDate(d);
 }
@@ -73,7 +92,12 @@ const store = config.scriptUrl
     }
   : {
       async list() {
-        try { return JSON.parse(storageGet(DEMO_KEY) || "[]"); } catch { return []; }
+        const stored = storageGet(DEMO_KEY);
+        if (stored === null && demoSeed) {
+          storageSet(DEMO_KEY, JSON.stringify(demoSeed.entries));
+          return demoSeed.entries;
+        }
+        try { return JSON.parse(stored || "[]"); } catch { return []; }
       },
       async add(entry) {
         const all = await this.list();
@@ -426,9 +450,24 @@ $("log-form").addEventListener("submit", async (event) => {
 $("demo-banner").hidden = Boolean(config.scriptUrl);
 $("clear-demo").addEventListener("click", () => {
   try { localStorage.removeItem(DEMO_KEY); } catch { /* nothing stored */ }
-  $("form-status").textContent = "Demo entries cleared.";
+  $("form-status").textContent = demoSeed ? "Demo entries reset to the starting copy." : "Demo entries cleared.";
   refresh();
 });
+// With a seed file, the banner gets one button for each test person.
+if (demoSeed) {
+  const viewAs = (name) => {
+    storageSet(NAME_KEY, name);
+    $("name-select").value = name;
+    $("name-select").dispatchEvent(new Event("change"));
+  };
+  const buttons = demoSeed.profiles.map((p) => {
+    const button = el("button", { type: "button", class: "secondary", style: "margin: 0 6px 6px 0" }, p.label);
+    button.addEventListener("click", () => viewAs(p.name));
+    return button;
+  });
+  $("demo-banner").append(el("p", {}, "This preview starts from a copy of the real log. View the page as:"), el("p", {}, ...buttons));
+}
+if (todayOverride) $("demo-banner").append(el("p", {}, `Showing the page as of ${dayDate(todayOverride)}.`));
 $("name-select").addEventListener("change", () => {
   currentName = $("name-select").value;
   showNewName();

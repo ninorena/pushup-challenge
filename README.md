@@ -56,6 +56,13 @@ python3 -m http.server 8000
 
 Then open http://localhost:8000. Press Ctrl-C in the terminal to stop the server.
 
+Demo mode has two more tools for testing:
+
+- Add `?today=2026-11-30` to the address to see the page as it will look on that day.
+- Put a `demo-seed.json` file next to the page to start the demo with entries. The file holds `startDate`, `seasonStart`, `entries`, and `profiles`, a list of test people. Each test person gets a button in the demo banner.
+
+Neither tool does anything when `scriptUrl` is set.
+
 ## Tests
 
 ```
