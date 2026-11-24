@@ -2,16 +2,17 @@
 // Keep this text the same as the newest entry in RELEASE-NOTES.md. A test checks this.
 // title and button are optional. Without them the box says "What's new" and "Got it".
 export const whatsNew = {
-  date: "2026-11-22",
-  title: "3 sets a day, starting Monday",
+  date: "2026-11-30",
+  title: "Climb a mountain together",
   paragraphs: [
-    "From Monday, Nov 23, aim for 3 sets a day, 5 days a week. This week's target stays the same.",
+    "The page is simpler, and the group now climbs a mountain each week.",
   ],
   items: [
-    "Already did a max-reps test? You're all set. Your new target shows on the board on Monday.",
-    "Keep each set easy: about two-thirds of your max, with 2 or 3 reps left in the tank. If your test was 20, that's sets of 13.",
-    "Missed a set? No big deal. Add one tomorrow. Only your weekly total counts.",
-    "Feeling stronger? Retest any day, and your new target starts that day.",
+    "Each 10% of your own target moves the group one step up. The limit is 10 steps a week for each person.",
+    "One rep is one foot. Each Monday, the page shows how high the group climbed.",
+    "New here? Do any pushups on 5 days first. The max-reps test comes after that.",
+    "The board shows days and percent. Your own card shows your reps.",
+    "Logged the wrong number? Tap Undo right after you log.",
+    "Week 4 of season 1 is Dec 7 to 13. It is a normal week, and your target stays the same. Do a new max-reps test that week.",
   ],
-  button: "I'm in",
 };

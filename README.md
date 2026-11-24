@@ -1,6 +1,6 @@
 # Pushup Challenge
 
-A shared weekly pushup goal for a group of friends. Each person logs their reps. The site adds up everyone's personal targets into one group goal.
+A weekly pushup challenge for a group of friends. Each person logs their reps. Each person has their own target, and the group climbs a mountain together.
 
 The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the reps.
 
@@ -8,18 +8,22 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 
 - Weeks run Monday to Sunday. Week 1 starts on `startDate` in `config.js`, which must be a Monday.
 - Seasons are 4 weeks long. Season 1 starts on `seasonStart` in `config.js`, which must be a Monday. Weeks before it show reps only, with no targets.
-- A person sets their target with a max-reps test: one set of as many good pushups as they can, logged on the "Max-reps test" tab. The Sheet stores it with the exercise `pushups-max`. Its reps count toward the week too.
+- A new person is a starter. A starter does any quantity of pushups on 5 days (`STARTER_DAYS` in `challenge.js`). A logged day is a day with more than 0 reps. After 5 logged days, the page asks for the max-reps test. A starter can do the test earlier.
+- A person sets their target with a max-reps test: one set of as many good pushups as they can, logged on the "Max-reps test" page. The Sheet stores it with the exercise `pushups-max`. Its reps count toward the week too.
 - A person's weekly target is their latest test times `weeklyMultiplier` (9.75), rounded. A test of 20 gives 195: 3 sets of 13 on 5 days. Before Nov 23 the multiplier was 6.5, and `earlierMultipliers` in `config.js` keeps past weeks at that rate.
 - A person can retest any day. The new target counts from the test day, and the days before keep the old one. Each day is 1/7 of the week. Example: 195 a week, then a test of 30 (293 a week) on Thursday, gives 3/7 × 195 + 4/7 × 293 = 251 that week. A lower test lowers the target the same way.
-- A person whose first test is mid-week gets a target for the rest of that week and counts toward the group goal at once.
-- A person with no test is in a test week. They show on the board, but they do not count toward the group goal.
+- A person whose first test is mid-week gets a target for the rest of that week.
 - Week 4 of each season is a retest week. Its target is a normal week's target. People retest that week, and the new target starts on the test day, as with any retest.
-- Each person picks their kind of pushup (wall, box, knee or full) and tests in that kind. Every rep counts as one. A person who moves to a harder kind retests.
-- A person's percent is reps divided by target. The group goal is the average percent of everyone with a target. Over 100% counts.
-- A person who logs after `comebackAfterDays` (3) or more days without logging gets a ↩ next to their name that day.
-- A person who logs nothing for two weeks in a row leaves the group goal until they log again. They keep their old target, or log a new test.
+- Any kind of pushup counts, from wall pushups to one-armed. A person uses the same kind for the test and the sets. Every rep counts as one. A person who moves to a harder kind retests.
+- The board shows 7 marks for the days of the week and a percent for each person. The percent is reps divided by target. The board does not show reps. A person sees their own reps on their own card.
+- The group climbs a mountain each week. A person with a target adds 1 step for each 10% of the target. A starter adds 2 steps for each logged day. The maximum is 10 steps a week for each person, so a strong week does not cover another person. The summit is every person at 10 steps.
+- One rep is one foot. The page shows the feet of a week only after the week ends. It shows them with the tallest landmark in `heights.js` that is not taller. A week always shows its feet, also when the group did not reach the summit.
+- The feet of a season are the sum of its 4 weeks. After week 4, the page shows them with a mountain from `heights.js`. The feet start at zero each season.
+- Each height in `heights.js` has the address of its source.
+- A person who logs after `comebackAfterDays` (3) or more days without logging gets a "Welcome back" card that day.
+- A person who logs nothing for two weeks in a row leaves the climb until they log again. They keep their old target, or log a new test.
 - Each name is one person. A new name that is already on the board, in any case, is refused. The person picks their name from the list, or adds a last initial.
-- A negative number fixes a mistake.
+- The main form logs reps for today. An Undo button shows after each log. The "Another day" page logs reps for an earlier day and takes off reps. Each fix adds a negative entry to the Sheet.
 
 To change these numbers, edit `config.js`.
 

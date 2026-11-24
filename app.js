@@ -1,11 +1,13 @@
 import { config } from "./config.js";
-import { summarize, weekRange, TEST_EXERCISE, SEASON_WEEKS } from "./challenge.js";
+import { summarize, weekRange, daysBetween, tallestWithin, TEST_EXERCISE, SEASON_WEEKS, STARTER_DAYS } from "./challenge.js";
+import { landmarks, mountains } from "./heights.js";
 import { whatsNew } from "./whats-new.js";
 
 const $ = (id) => document.getElementById(id);
 const NAME_KEY = "pushup-challenge:name";
 const DEMO_KEY = "pushup-challenge:demo-entries";
 const SEEN_KEY = "pushup-challenge:whats-new-seen";
+const REVEAL_KEY = "pushup-challenge:reveal-seen";
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const params = new URLSearchParams(location.search);
@@ -125,66 +127,206 @@ function table(headers, rows) {
   );
 }
 
-function renderProgress(week) {
-  const box = $("progress");
-  box.replaceChildren();
-  const testNote = el("p", { class: "muted" }, "Log a max-reps test: one set of as many good pushups as you can. Your test sets your weekly target.");
-  if (!week || week.season === null) {
-    box.append(el("h2", {}, `Season 1 starts ${dayDate(config.seasonStart)}`));
-    if (week) box.append(el("div", { class: "big" }, week.groupReps.toLocaleString(), el("small", {}, " pushups this week")));
-    box.append(testNote);
-    return;
-  }
-  const testing = week.members.filter((m) => m.testWeek).length;
-  if (week.groupPercent === null) {
-    box.append(
-      el("h2", {}, "Test week"),
-      el("div", { class: "big" }, week.groupReps.toLocaleString(), el("small", {}, " pushups so far")),
-      testNote,
-    );
-    return;
-  }
-  box.append(
-    el("h2", {}, "Group goal this week"),
-    el("div", { class: "big" }, `${week.groupPercent}%`, el("small", {}, " of target")),
-    el("div", { class: week.hit ? "bar done" : "bar" }, el("div", { style: `width:${Math.min(100, week.groupPercent)}%` })),
-    el("p", { class: week.hit ? "good" : "muted" }, week.hit ? "Goal reached. Everything else is extra." : "Every rep over your target covers a friend."),
-  );
-  if (week.seasonWeek === SEASON_WEEKS) {
-    box.append(el("p", { class: "muted" }, "Retest week: log a max-reps test this week. Your target changes from the day you test."));
-  }
-  if (testing > 0) {
-    box.append(el("p", { class: "muted" }, `${testing} ${testing === 1 ? "person is" : "people are"} in their test week.`));
-  }
+const NEW_NAME = "__new__";
+let currentName = storageGet(NAME_KEY) || "";
+// The summary from the last successful load, or null.
+let summary = null;
+// The entries from the last successful load, or null if the last load failed.
+let lastEntries = null;
+// The entry that the Undo button takes back, or null.
+let lastLogged = null;
+
+// The chosen person, spelled as on the board, or null for a new person.
+function knownName() {
+  if (!summary || !currentName) return null;
+  return summary.names.find((n) => n.toLowerCase() === currentName.toLowerCase()) || null;
 }
 
-function renderThisWeek(week) {
-  const box = $("this-week");
+const feetText = (n) => `${n.toLocaleString()} ${n === 1 ? "foot" : "feet"}`;
+const comparedTo = (feet, item) => `${feet === item.feet ? "as high as" : "higher than"} ${item.name} (${item.feet.toLocaleString()} ft)`;
+
+// A row of round marks, filled for each true entry.
+function dots(flags, label, cls = "") {
+  return el(
+    "span", { class: `dots ${cls}`.trim(), role: "img", "aria-label": label },
+    ...flags.map((on) => el("span", { class: on ? "dot on" : "dot" })),
+  );
+}
+
+function starterDots(done) {
+  const flags = Array.from({ length: STARTER_DAYS }, (_, i) => i < done);
+  return dots(flags, `${done} of ${STARTER_DAYS} starter days done`, "big-dots");
+}
+
+// The card for the person: who they are, where they are, and the form to log today.
+function renderMe() {
+  const today = localDate();
+  const known = knownName();
+  const head = $("me-head");
+  head.replaceChildren();
+  $("who").hidden = Boolean(known);
+  $("switch-name").hidden = !known;
+  $("new-name").required = !known;
+  let button = "Log reps";
+
+  if (!known) {
+    head.append(
+      el("h2", {}, "Start here"),
+      el("p", {}, "Do any pushups today. One counts. Then log them."),
+      starterDots(0),
+      el("p", { class: "muted" }, `Your first goal is ${STARTER_DAYS} days. No target and no test until then.`),
+    );
+    $("submit").textContent = "Log day 1";
+    return;
+  }
+
+  const days = summary.loggedDays[known] || [];
+  const n = days.length;
+  const loggedToday = days.includes(today);
+  const before = days.filter((d) => d < today).at(-1);
+  const back = Boolean(before) && daysBetween(before, today) >= config.comebackAfterDays;
+  const week = summary.weeks.at(-1);
+  const m = week ? week.members.find((x) => x.name === known) : null;
+  let title;
+  const body = [];
+
+  if (!summary.lastTests[known] && n < STARTER_DAYS) {
+    // A starter: any pushups on 5 days, with no target and no test.
+    const left = STARTER_DAYS - n;
+    title = loggedToday ? `Day ${n} done, ${known}` : `Day ${n + 1} of ${STARTER_DAYS}, ${known}`;
+    body.push(
+      el("p", {}, loggedToday ? `${left} more ${left === 1 ? "day" : "days"} to your first goal.` : "Any pushups count. One is enough."),
+      starterDots(n),
+    );
+    button = loggedToday ? "Log another set" : `Log day ${n + 1}`;
+  } else if (!summary.lastTests[known]) {
+    title = `${STARTER_DAYS} days done, ${known}`;
+    body.push(
+      el("p", {}, "Next is your max-reps test: one set of as many good pushups as you can. It sets your weekly target."),
+      el("p", {}, el("a", { href: "#test", class: "button" }, "Do my test")),
+    );
+  } else {
+    title = loggedToday ? `You showed up today, ${known}` : `Hi, ${known}`;
+    const reps = m ? m.reps : 0;
+    const size = summary.setSizes[known];
+    body.push(el("p", { class: "muted" },
+      m && m.target !== null ? `${reps.toLocaleString()} of ${m.target.toLocaleString()} reps this week.` : `${reps.toLocaleString()} reps this week.`,
+      size ? ` Your sets: about ${size}.` : ""));
+    if (week && week.seasonWeek === SEASON_WEEKS) {
+      body.push(el("p", { class: "muted" }, "Retest week: ", el("a", { href: "#test" }, "do a new max-reps test"), " this week."));
+    }
+    if (loggedToday) button = "Log another set";
+  }
+
+  if (back) {
+    // The first day back after days off gets a welcome, not a mark on the board.
+    head.append(el("div", { class: "welcome" },
+      el("h2", {}, `Welcome back, ${known}`),
+      el("p", {}, loggedToday ? "You showed up today." : "Any pushups today count.")));
+    head.append(...body);
+  } else {
+    head.append(el("h2", {}, title), ...body);
+  }
+  $("submit").textContent = button;
+}
+
+// The name list for a person the page does not know yet.
+function renderNameSelect() {
+  const select = $("name-select");
+  select.replaceChildren(
+    el("option", { value: NEW_NAME }, "I'm new"),
+    ...summary.names.map((n) => el("option", { value: n }, n)),
+  );
+  select.value = NEW_NAME;
+}
+
+// The mountain: the climber moves up the left side as the group adds steps.
+function mountain(week) {
+  const f = week.maxSteps ? Math.min(1, week.steps / week.maxSteps) : 0;
+  const base = [14, 108];
+  const top = [226, 16];
+  const at = [base[0] + (top[0] - base[0]) * f, base[1] + (top[1] - base[1]) * f];
+  const ns = "http://www.w3.org/2000/svg";
+  const node = (tag, attrs) => {
+    const n = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    return n;
+  };
+  const svg = node("svg", { viewBox: "0 0 320 120", class: "mountain", role: "img", "aria-label": `The group is at ${week.steps} of ${week.maxSteps} steps to the summit.` });
+  svg.append(
+    node("polygon", { points: `${base} ${top} 306,108`, class: "rock" }),
+    node("line", { x1: top[0], y1: top[1], x2: top[0], y2: top[1] - 12, class: "pole" }),
+    node("polygon", { points: `${top[0]},${top[1] - 12} ${top[0] + 12},${top[1] - 8} ${top[0]},${top[1] - 4}`, class: f >= 1 ? "flag reached" : "flag" }),
+    node("line", { x1: base[0], y1: base[1], x2: top[0], y2: top[1], class: "trail" }),
+    node("line", { x1: base[0], y1: base[1], x2: at[0], y2: at[1], class: "climbed" }),
+    node("circle", { cx: at[0], cy: at[1], r: 7, class: "climber" }),
+  );
+  return svg;
+}
+
+// The card for the group: the climb, then one row for each person with days and percent.
+function renderGroup(week) {
+  const box = $("group-body");
   box.replaceChildren();
   if (!week || week.members.length === 0) {
     box.append(el("p", { class: "muted" }, "Nobody has logged this week yet."));
     return;
   }
-  const today = localDate();
-  const rows = week.members.map((m) => {
+  const summit = week.steps >= week.maxSteps;
+  box.append(
+    mountain(week),
+    el("p", { class: summit ? "good" : "" }, summit ? "Summit reached. Everyone hit their target." : `${week.steps} of ${week.maxSteps} steps to the summit.`),
+    el("p", { class: "muted" }, "On Monday, you see how high the group climbed."),
+  );
+  const known = knownName();
+  const rows = [...week.members].sort((a, b) => (b.name === known) - (a.name === known));
+  const list = el("ul", { class: "board" });
+  for (const m of rows) {
+    const count = m.days.filter(Boolean).length;
     let status = "";
-    if ((m.testWeek || m.target === null) && m.nextTarget !== null) status = el("span", { class: "muted" }, `next week: ${m.nextTarget}`);
-    else if (m.testWeek) status = el("span", { class: "muted" }, "test week");
-    else if (m.percent !== null) status = el("span", { class: m.percent >= 100 ? "good" : "muted" }, `${m.percent}%`);
-    const name = el("td", {}, m.name);
-    if (m.comebacks.includes(today)) name.append(" ", el("span", { class: "badge", title: "Welcome back" }, "↩"));
-    return el(
-      "tr", {},
-      name,
-      el("td", { class: "num" }, m.reps.toLocaleString()),
-      el("td", { class: "num" }, m.target === null ? "–" : m.target.toLocaleString()),
-      el("td", { class: "num" }, status),
-    );
-  });
-  box.append(table([["Name"], ["Reps", "num"], ["Target", "num"], ["", "num"]], rows));
+    if (m.percent !== null) status = el("span", { class: m.percent >= 100 ? "good" : "" }, `${m.percent}%`);
+    else if (week.season !== null) status = el("span", { class: "muted small" }, "starter");
+    list.append(el(
+      "li", {},
+      el("span", { class: "who" }, m.name, m.name === known ? el("span", { class: "muted you" }, " (you)") : ""),
+      dots(m.days, `${count} ${count === 1 ? "day" : "days"}`),
+      el("span", { class: "pct" }, status),
+    ));
+  }
+  box.append(list);
 }
 
-function renderHistory(weeks) {
+// The landmark of last week, and the mountain of a season that just ended, until the person closes the card.
+function renderReveal(weeks, seasons) {
+  const box = $("reveal");
+  const last = weeks.at(-2);
+  const lastSeason = last && last.season !== null ? seasons[last.season - 1] : null;
+  // A season that just ended shows its mountain, also if nobody logged in its last week.
+  const seasonEnded = Boolean(lastSeason) && lastSeason.complete && last.seasonWeek === SEASON_WEEKS && lastSeason.feet > 0;
+  if (!last || (last.members.length === 0 && !seasonEnded) || storageGet(REVEAL_KEY) === String(last.week)) {
+    box.hidden = true;
+    return;
+  }
+  const landmark = tallestWithin(last.feet, landmarks);
+  box.replaceChildren(
+    el("h2", {}, `Last week: ${feetText(last.feet)}`),
+    el("p", {}, landmark ? `Together, you climbed ${comparedTo(last.feet, landmark)}.` : "Every foot counts."),
+  );
+  if (seasonEnded) {
+    const peak = tallestWithin(lastSeason.feet, mountains);
+    box.append(el("p", {}, el("strong", {}, `Season ${lastSeason.season}: ${feetText(lastSeason.feet)}.`), peak ? ` That is ${comparedTo(lastSeason.feet, peak)}.` : ""));
+  }
+  const close = el("button", { type: "button", class: "secondary" }, "Got it");
+  close.addEventListener("click", () => {
+    storageSet(REVEAL_KEY, String(last.week));
+    box.hidden = true;
+  });
+  box.append(close);
+  box.hidden = false;
+}
+
+// The "Past weeks" page: the feet and the landmark of each finished week.
+function renderHistory(weeks, seasons) {
   const box = $("history");
   box.replaceChildren();
   const past = weeks.slice(0, -1).reverse();
@@ -192,64 +334,47 @@ function renderHistory(weeks) {
     box.append(el("p", { class: "muted" }, "Finished weeks show up here."));
     return;
   }
+  for (const s of seasons.filter((x) => x && x.complete).reverse()) {
+    const peak = tallestWithin(s.feet, mountains);
+    box.append(el("p", {}, el("strong", {}, `Season ${s.season}: ${feetText(s.feet)}.`), peak ? ` That is ${comparedTo(s.feet, peak)}.` : ""));
+  }
   const rows = past.map((w) => {
-    let goal = "–";
-    let status = "";
-    if (w.season !== null && w.groupPercent === null) goal = "test week";
-    if (w.groupPercent !== null) {
-      goal = `${w.groupPercent}%`;
-      status = el("span", { class: w.hit ? "good" : "warn" }, w.hit ? "✓" : "missed");
-    }
+    const landmark = tallestWithin(w.feet, landmarks);
     const label = w.season === null ? `Week ${w.week}` : `Season ${w.season}, week ${w.seasonWeek}`;
     return el(
       "tr", {},
       el("td", {}, label, el("div", { class: "muted" }, `${prettyDate(w.from)} – ${prettyDate(w.to)}`)),
-      el("td", { class: "num" }, w.groupReps.toLocaleString()),
-      el("td", { class: "num" }, goal),
-      el("td", { class: "num" }, status),
+      el("td", { class: "num" }, w.feet.toLocaleString()),
+      el("td", {}, landmark ? `${landmark.name} (${landmark.feet.toLocaleString()} ft)` : "–"),
     );
   });
-  box.append(table([["Week"], ["Reps", "num"], ["Goal", "num"], ["", "num"]], rows));
+  box.append(table([["Week"], ["Feet", "num"], ["Higher than"]], rows));
 }
 
-// The "How it works" box: what the challenge is, the first three steps, then the rules.
+// The "How it works" page: what the challenge is, the first three steps, then the rules.
 function renderRules() {
   const perTest = Math.round(20 * config.weeklyMultiplier);
   const perSet = Math.round(20 * config.setShare);
-  $("how-intro").textContent =
-    "Everyone gets a weekly pushup target that fits them. The group tries to hit its targets together.";
+  $("how-intro").textContent = "Everyone does pushups at their own level. Each week, the group climbs a mountain together.";
   const steps = [
-    "Choose your name in the form below. If you are not on the list, choose \"I'm new\".",
-    "Choose your kind of pushup: wall, box, knee or full. Do one set of as many good pushups as you can. Log it on the Max-reps test tab.",
-    `Your test sets your weekly target. A test of 20 gives ${perTest} a week, for example 3 sets of ${perSet} on 5 days. Log every set on the Log reps tab.`,
+    "Choose your name. If you are not on the list, choose \"I'm new\".",
+    `Do any pushups on ${STARTER_DAYS} days. One counts. Log them each day.`,
+    `Then do a max-reps test: one set of as many good pushups as you can. Your test sets your weekly target. A test of 20 gives ${perTest} a week, for example 3 sets of ${perSet} on 5 days.`,
   ];
   const rules = [
+    "Any kind of pushup counts, from wall pushups to one-armed. Use the same kind for your test and your sets.",
     "Only the weekly total counts. If you miss a set, do an extra one on another day.",
     `Most sets are not max sets. An everyday set is about ${Math.round(config.setShare * 100)}% of your test, so you stop with 2 or 3 reps left.`,
     "Weeks run Monday to Sunday. A season is 4 weeks. In week 4, do a new test to set your target for the next season.",
     "You can retest any day. Your new target starts that day. Retest when you move to a harder kind of pushup.",
-    "The group goal is the average of everyone's percent of target. Beat yours and you cover a friend's off week.",
-    `Coming back is a win. When you log after ${config.comebackAfterDays} or more days off, you get a ↩ next to your name for that day.`,
-    "Skip two weeks in a row and you leave the group goal until you log again. No penalty.",
-    "Logged too many? Tick \"Take off reps\" and log the extra.",
+    "The board shows the days you logged and your percent of your own target. It does not show reps.",
+    "The climb: each 10% of your own target is one step, up to 10 steps a week. Before your test, each day you log is 2 steps. The summit is everyone at 10 steps.",
+    "One rep is one foot. On Monday, the page shows how high the group climbed and a landmark of that height. After 4 weeks, it shows a mountain.",
+    "Skip two weeks in a row and you leave the climb until you log again. No penalty.",
+    "Logged the wrong number? Tap Undo right after you log. For an older mistake, open \"Another day\".",
   ];
   $("first-steps").replaceChildren(...steps.map((t) => el("li", {}, t)));
   $("rules").replaceChildren(...rules.map((t) => el("li", {}, t)));
-}
-
-// Open "How it works" for a person with no max-reps test yet. Close it again only
-// if this code opened it, so a box the person opened stays open.
-let howOpenedForNewcomer = false;
-function syncHowItWorks() {
-  const box = $("how-it-works");
-  const hasTest = Boolean(lastTests[$("name-select").value]);
-  if (!hasTest) {
-    if (!box.open) howOpenedForNewcomer = true;
-    box.open = true;
-  } else if (howOpenedForNewcomer) {
-    box.open = false;
-    howOpenedForNewcomer = false;
-  }
 }
 
 // The latest release note, until this person closes it.
@@ -272,54 +397,60 @@ function renderWhatsNew() {
   });
 }
 
-let lastNames = [];
-let lastSetSizes = {};
-let lastTests = {};
-let testMode = false;
-
-// The two tabs: everyday reps, or a max-reps test. The test tab gets its own
-// instructions, the person's last test and its own button.
-function setMode(test) {
-  testMode = test;
-  for (const [id, on] of [["tab-reps", !test], ["tab-test", test]]) {
-    $(id).setAttribute("aria-selected", String(on));
-    $(id).tabIndex = on ? 0 : -1;
+// The test page and the "Another day" page need a person with a name on the board.
+function renderPages() {
+  const known = knownName();
+  for (const id of ["test-form", "day-form"]) $(id).hidden = !known;
+  for (const id of ["test-who", "day-who"]) {
+    $(id).textContent = known ? `Logging as ${known}.` : "First log a day on the main page, or choose your name there.";
   }
-  $("log-form").setAttribute("aria-labelledby", test ? "tab-test" : "tab-reps");
-  $("log-form").classList.toggle("test-mode", test);
-  $("test-guide").hidden = !test;
-  $("set-guide").hidden = test;
-  $("take-off-label").hidden = test;
-  if (test) $("take-off").checked = false;
-  renderSubmitLabel();
-  renderTestGuide();
+  const last = known ? summary.lastTests[known] : null;
+  $("test-last").textContent = last ? `Last test: ${last.reps} on ${prettyDate(last.date)}` : "No test yet.";
+  $("take-off").checked = false;
+  $("day-submit").textContent = "Log reps";
 }
 
-function renderSubmitLabel() {
-  $("submit").textContent = testMode ? "Save my test" : $("take-off").checked ? "Take off reps" : "Log reps";
+// The pages behind the links: #how, #past, #test and #day. Any other address shows the main page.
+const PAGES = ["how", "past", "test", "day"];
+function showPage() {
+  const page = PAGES.includes(location.hash.slice(1)) ? location.hash.slice(1) : null;
+  $("home").hidden = Boolean(page);
+  for (const p of PAGES) $(`page-${p}`).hidden = p !== page;
+  if (page) $(`page-${page}`).querySelector("h2").focus();
 }
 
-$("take-off").addEventListener("change", renderSubmitLabel);
-
-function renderTestGuide() {
-  if (!testMode) return;
-  const last = lastTests[$("name-select").value] ?? null;
-  $("test-guide").replaceChildren(
-    el("p", {}, "One set, as many good pushups as you can. Your target changes from the day you test."),
-    el("p", { class: "muted" }, last ? `Last test: ${last.reps} on ${prettyDate(last.date)}` : "No test yet."),
-  );
+function render() {
+  if (!summary) return;
+  const current = summary.weeks.at(-1);
+  if (current) {
+    const which = current.season === null ? `Week ${current.week}` : `Season ${current.season}, week ${current.seasonWeek} of ${SEASON_WEEKS}`;
+    $("week-label").textContent = `${which} · ${dayDate(current.from)} to ${dayDate(current.to)}`;
+  } else {
+    const w1 = weekRange(1, config.startDate);
+    $("week-label").textContent = `Starts ${dayDate(w1.from)}`;
+  }
+  if (!knownName()) renderNameSelect();
+  renderMe();
+  renderGroup(current);
+  renderReveal(summary.weeks, summary.seasons);
+  renderHistory(summary.weeks, summary.seasons);
+  renderPages();
 }
 
-// Under the form: how big an everyday set is for the chosen person.
-function renderSetGuide() {
-  const picked = $("name-select").value;
-  const size = lastSetSizes[picked] ?? null;
-  $("set-guide").textContent = size === null
-    ? "Most sets are not max sets. Stop each set with 2 or 3 reps left in the tank. Save your all-out effort for your test."
-    : `Your sets: about ${size}. Stop with 2 or 3 reps left in the tank. Save your all-out effort for your test.`;
+async function refresh() {
+  try {
+    const entries = await store.list();
+    lastEntries = entries;
+    const pushups = entries.filter((e) => !e.exercise || e.exercise === "pushups" || e.exercise === TEST_EXERCISE);
+    summary = summarize(pushups, localDate(), config);
+    $("error").hidden = true;
+    render();
+  } catch (err) {
+    lastEntries = null;
+    $("error").textContent = `Could not load the log: ${err.message}`;
+    $("error").hidden = false;
+  }
 }
-// The entries from the last successful load, or null if the last load failed.
-let lastEntries = null;
 
 // After a save with no reply: check whether the entry reached the log anyway.
 async function landed(entry) {
@@ -333,119 +464,115 @@ async function landed(entry) {
   }
 }
 
-const NEW_NAME = "__new__";
-let currentName = storageGet(NAME_KEY) || "";
-
-// The name dropdown: everyone who has logged, plus "I'm new" for joiners.
-function renderNameSelect() {
-  const select = $("name-select");
-  const chosen = currentName;
-  select.replaceChildren(
-    el("option", { value: "" }, "Choose your name"),
-    ...lastNames.map((n) => el("option", { value: n }, n)),
-    el("option", { value: NEW_NAME }, "I'm new"),
-  );
-  const match = chosen === NEW_NAME ? NEW_NAME : lastNames.find((n) => n.toLowerCase() === chosen.toLowerCase());
-  select.value = match || (lastNames.length === 0 ? NEW_NAME : "");
-  showNewName();
-}
-
-function showNewName() {
-  const isNew = $("name-select").value === NEW_NAME;
-  $("new-name-label").hidden = !isNew;
-  $("new-name").required = isNew;
-}
-
-async function refresh() {
-  const today = localDate();
-  try {
-    const entries = await store.list();
-    lastEntries = entries;
-    const pushups = entries.filter((e) => !e.exercise || e.exercise === "pushups" || e.exercise === TEST_EXERCISE);
-    const summary = summarize(pushups, today, config);
-    const current = summary.weeks.at(-1);
-    $("error").hidden = true;
-    if (current) {
-      const which = current.season === null ? `Week ${current.week}` : `Season ${current.season}, week ${current.seasonWeek} of ${SEASON_WEEKS}`;
-      $("week-label").textContent = `${which} · ${dayDate(current.from)} to ${dayDate(current.to)}`;
-    } else {
-      const w1 = weekRange(1, config.startDate);
-      $("week-label").textContent = `Starts ${dayDate(w1.from)}`;
-    }
-    renderProgress(current);
-    renderThisWeek(current);
-    renderHistory(summary.weeks);
-    lastNames = summary.names;
-    lastSetSizes = summary.setSizes;
-    lastTests = summary.lastTests;
-    renderNameSelect();
-    renderSetGuide();
-    renderTestGuide();
-    syncHowItWorks();
-  } catch (err) {
-    lastEntries = null;
-    $("error").textContent = `Could not load the log: ${err.message}`;
-    $("error").hidden = false;
-  }
-}
-
-$("log-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const picked = $("name-select").value;
-  const name = picked === NEW_NAME ? $("new-name").value.trim() : picked;
-  const typed = Number($("reps").value);
-  const takeOff = !testMode && $("take-off").checked;
-  // Phone number pads have no minus key, so the checkbox makes the number negative.
-  const reps = takeOff ? -Math.abs(typed) : typed;
-  const date = $("date").value;
-  const isTest = testMode;
+// Save one entry and load the log again. Returns true if the entry is in the log.
+async function save(entry, button) {
   const status = $("form-status");
-  for (const id of ["name-select", "new-name", "reps", "date"]) $(id).removeAttribute("aria-invalid");
-  // Show the message and put the cursor in the field that has the problem.
-  const fail = (message, id) => {
-    status.textContent = message;
-    $(id).setAttribute("aria-invalid", "true");
-    $(id).focus();
-  };
-  if (!name) return fail("Enter your name.", picked === NEW_NAME ? "new-name" : "name-select");
-  if (!Number.isInteger(typed) || typed === 0) return fail("Enter a whole number of reps (not 0).", "reps");
-  if (!date) return fail("Pick a day.", "date");
-  if (isTest && reps < 0) return fail("A max-reps test can't be negative.", "reps");
-  if (date > localDate()) return fail("That day is in the future.", "date");
-  // Reuse the spelling already on the board, so "ana" and "Ana" stay one person.
-  const known = lastNames.find((n) => n.toLowerCase() === name.toLowerCase());
-  // A new name that is already on the board would add reps to that person's row.
-  if (picked === NEW_NAME && known) {
-    return fail(`${known} is already in the challenge. If that's you, pick your name from the list. If not, add your last initial, for example ${known} R.`, "new-name");
-  }
-  $("submit").disabled = true;
+  button.disabled = true;
   status.textContent = "Saving…";
-  const entry = { name: known || name, date, reps, exercise: isTest ? TEST_EXERCISE : "pushups" };
   try {
     try {
       await store.add(entry);
     } catch (err) {
       if (!err.unconfirmed || !(await landed(entry))) throw err;
     }
-    currentName = known || name;
+    currentName = entry.name;
     storageSet(NAME_KEY, currentName);
-    $("reps").value = "";
-    $("new-name").value = "";
-    $("take-off").checked = false;
-    setMode(false);
-    if (date < config.startDate) status.textContent = `Saved, but reps before ${prettyDate(config.startDate)} do not count.`;
-    else if (isTest) status.textContent = `Saved your max-reps test: ${reps}. Your target changes from ${prettyDate(date)}.`;
-    else if (reps < 0) status.textContent = `Took off ${-reps} for ${prettyDate(date)}.`;
-    else status.textContent = `Saved ${reps} for ${prettyDate(date)}.`;
     await refresh();
+    return true;
   } catch (err) {
     status.textContent = err.unconfirmed
       ? "Couldn't confirm your reps were saved. Refresh the page and check the board before you log them again."
       : `Not saved: ${err.message}`;
+    return false;
   } finally {
-    $("submit").disabled = false;
+    button.disabled = false;
   }
+}
+
+// Show the message and put the cursor in the field that has the problem.
+function fail(message, id) {
+  $("form-status").textContent = message;
+  $(id).setAttribute("aria-invalid", "true");
+  $(id).focus();
+}
+
+// "Logged 13. Undo." The Undo button takes back the entry just logged.
+function showLogged(entry) {
+  lastLogged = entry;
+  const undo = el("button", { type: "button", class: "link" }, "Undo");
+  undo.addEventListener("click", async () => {
+    if (lastLogged !== entry) return;
+    lastLogged = null;
+    if (await save({ ...entry, reps: -entry.reps }, undo)) $("form-status").textContent = `Took off ${entry.reps}.`;
+  });
+  $("form-status").replaceChildren(`Logged ${entry.reps}. `, undo);
+}
+
+// The main form: reps for today.
+$("log-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const known = knownName();
+  const picked = $("new-name").value.trim();
+  const reps = Number($("reps").value);
+  for (const id of ["new-name", "reps"]) $(id).removeAttribute("aria-invalid");
+  if (!known && !picked) return fail("Enter your name.", "new-name");
+  // A new name that is already on the board would add reps to that person's row.
+  const taken = known ? null : summary && summary.names.find((n) => n.toLowerCase() === picked.toLowerCase());
+  if (taken) return fail(`${taken} is already in the challenge. If that's you, pick your name from the list. If not, add your last initial, for example ${taken} R.`, "new-name");
+  if (!Number.isInteger(reps) || reps < 1) return fail("Enter a whole number of pushups, 1 or more.", "reps");
+  const entry = { name: known || picked, date: localDate(), reps, exercise: "pushups" };
+  if (!(await save(entry, $("submit")))) return;
+  $("reps").value = "";
+  $("new-name").value = "";
+  showLogged(entry);
 });
+
+// The test page: one max-reps test, dated today.
+$("test-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const reps = Number($("test-reps").value);
+  $("test-reps").removeAttribute("aria-invalid");
+  if (!Number.isInteger(reps) || reps < 1) return fail("Enter a whole number of pushups, 1 or more.", "test-reps");
+  if (!(await save({ name: knownName(), date: localDate(), reps, exercise: TEST_EXERCISE }, $("test-submit")))) return;
+  $("test-reps").value = "";
+  lastLogged = null;
+  $("form-status").textContent = `Saved your max-reps test: ${reps}. Your target changes from today.`;
+  location.hash = "";
+});
+
+// The "Another day" page: reps for an earlier day, or reps to take off.
+$("day-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const typed = Number($("day-reps").value);
+  const date = $("date").value;
+  for (const id of ["day-reps", "date"]) $(id).removeAttribute("aria-invalid");
+  if (!Number.isInteger(typed) || typed < 1) return fail("Enter a whole number of pushups, 1 or more.", "day-reps");
+  if (!date) return fail("Pick a day.", "date");
+  if (date > localDate()) return fail("That day is in the future.", "date");
+  // Phone number pads have no minus key, so the checkbox makes the number negative.
+  const reps = $("take-off").checked ? -typed : typed;
+  if (!(await save({ name: knownName(), date, reps, exercise: "pushups" }, $("day-submit")))) return;
+  $("day-reps").value = "";
+  lastLogged = null;
+  if (date < config.startDate) $("form-status").textContent = `Saved, but reps before ${prettyDate(config.startDate)} do not count.`;
+  else $("form-status").textContent = reps < 0 ? `Took off ${-reps} for ${prettyDate(date)}.` : `Saved ${reps} for ${prettyDate(date)}.`;
+  location.hash = "";
+});
+$("take-off").addEventListener("change", () => {
+  $("day-submit").textContent = $("take-off").checked ? "Take off reps" : "Log reps";
+});
+
+function choose(name) {
+  currentName = name;
+  storageSet(NAME_KEY, name);
+  lastLogged = null;
+  $("form-status").textContent = "";
+  render();
+}
+$("name-select").addEventListener("change", () => {
+  if ($("name-select").value !== NEW_NAME) choose($("name-select").value);
+});
+$("switch-name").addEventListener("click", () => choose(""));
 
 $("demo-banner").hidden = Boolean(config.scriptUrl);
 $("clear-demo").addEventListener("click", () => {
@@ -455,39 +582,19 @@ $("clear-demo").addEventListener("click", () => {
 });
 // With a seed file, the banner gets one button for each test person.
 if (demoSeed) {
-  const viewAs = (name) => {
-    storageSet(NAME_KEY, name);
-    $("name-select").value = name;
-    $("name-select").dispatchEvent(new Event("change"));
-  };
   const buttons = demoSeed.profiles.map((p) => {
     const button = el("button", { type: "button", class: "secondary", style: "margin: 0 6px 6px 0" }, p.label);
-    button.addEventListener("click", () => viewAs(p.name));
+    button.addEventListener("click", () => choose(p.name));
     return button;
   });
   $("demo-banner").append(el("p", {}, "This preview starts from a copy of the real log. View the page as:"), el("p", {}, ...buttons));
 }
 if (todayOverride) $("demo-banner").append(el("p", {}, `Showing the page as of ${dayDate(todayOverride)}.`));
-$("name-select").addEventListener("change", () => {
-  currentName = $("name-select").value;
-  showNewName();
-  renderSetGuide();
-  renderTestGuide();
-  syncHowItWorks();
-});
-$("tab-reps").addEventListener("click", () => setMode(false));
-$("tab-test").addEventListener("click", () => setMode(true));
-// Arrow keys move between the tabs, as in any tab list.
-for (const id of ["tab-reps", "tab-test"]) {
-  $(id).addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    const next = id === "tab-reps" ? "tab-test" : "tab-reps";
-    setMode(next === "tab-test");
-    $(next).focus();
-  });
-}
+
+window.addEventListener("hashchange", showPage);
 $("date").value = localDate();
 $("date").max = localDate();
 renderRules();
 renderWhatsNew();
+showPage();
 refresh();
