@@ -31,6 +31,8 @@ To change these numbers, edit `config.js`.
 
 Every release adds an entry at the top of `RELEASE-NOTES.md` and copies it into `whats-new.js`. The page shows that entry in a "What's new" box until each person closes it. `npm test` fails if the two do not match.
 
+Every release also puts its date in the address of each page file: `style.css?v=…` and `app.js?v=…` in `index.html`, and the 4 imports at the top of `app.js`. The date makes each browser get the new files together. `npm test` fails if one address has a different date.
+
 ## Set up the Google Sheet (one time, about 5 minutes)
 
 1. Make a new Google Sheet. Name it "Pushup Challenge".

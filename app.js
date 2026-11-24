@@ -1,7 +1,7 @@
-import { config } from "./config.js";
-import { summarize, weekRange, daysBetween, tallestWithin, TEST_EXERCISE, SEASON_WEEKS, STARTER_DAYS } from "./challenge.js";
-import { landmarks, mountains } from "./heights.js";
-import { whatsNew } from "./whats-new.js";
+import { config } from "./config.js?v=2026-11-30";
+import { summarize, weekRange, daysBetween, tallestWithin, TEST_EXERCISE, SEASON_WEEKS, STARTER_DAYS } from "./challenge.js?v=2026-11-30";
+import { landmarks, mountains } from "./heights.js?v=2026-11-30";
+import { whatsNew } from "./whats-new.js?v=2026-11-30";
 
 const $ = (id) => document.getElementById(id);
 const NAME_KEY = "pushup-challenge:name";
