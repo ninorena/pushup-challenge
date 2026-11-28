@@ -3,6 +3,10 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const SEASON_WEEKS = 4;
 export const TEST_EXERCISE = "pushups-max";
+// A person with no test is a starter. After this many logged days, the page asks for the test.
+export const STARTER_DAYS = 5;
+// The climb: one set is one step. A starter day is this many steps: the suggested sets for a day.
+export const STARTER_DAY_STEPS = 3;
 
 function utcDay(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -13,7 +17,7 @@ function isoDate(ms) {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-function daysBetween(a, b) {
+export function daysBetween(a, b) {
   return Math.round((utcDay(b) - utcDay(a)) / DAY_MS);
 }
 
@@ -94,6 +98,32 @@ export function comebackDays(days, afterDays) {
   return sorted.filter((d, i) => i > 0 && daysBetween(sorted[i - 1], d) >= afterDays);
 }
 
+// The sets in a weekly target: the weekly multiplier divided by the set share
+// (9.75 / 0.65 = 15, which is 3 sets a day for 5 days).
+export function setsPerWeek(day, config) {
+  return Math.round(multiplierOn(day, config) / config.setShare);
+}
+
+// The steps one person adds to the group climb in a week. One set is one step,
+// and reps carry over within the week. A person at their target always has
+// `goal` steps, also when the rounded set size does not divide the target.
+// There is no maximum: a strong week covers a friend.
+// With no target (a starter): STARTER_DAY_STEPS for each logged day.
+export function stepsFor(reps, target, daysLogged, set, goal) {
+  if (target === null) return daysLogged * STARTER_DAY_STEPS;
+  if (reps <= 0) return 0;
+  return Math.max(set ? Math.floor(reps / set) : 0, Math.floor((reps * goal) / target));
+}
+
+// The tallest item in `list` ([{ name, feet }]) that is not taller than `feet`, or null.
+export function tallestWithin(feet, list) {
+  let best = null;
+  for (const item of list) {
+    if (item.feet <= feet && (!best || item.feet > best.feet)) best = item;
+  }
+  return best;
+}
+
 // entries: [{ name, date: "YYYY-MM-DD", reps, exercise }]
 // Returns one row per week from week 1 to the week that contains `today`.
 export function summarize(entries, today, config) {
@@ -108,15 +138,17 @@ export function summarize(entries, today, config) {
     const week = weekOf(e.date, startDate);
     if (week < 1 || week > currentWeek) continue;
     const key = nameKey(name);
-    if (!people.has(key)) people.set(key, { name, weeks: new Map(), tests: [], days: [] });
+    if (!people.has(key)) people.set(key, { name, weeks: new Map(), tests: [], dayTotals: new Map() });
     const p = people.get(key);
     p.weeks.set(week, (p.weeks.get(week) || 0) + reps);
     if (e.exercise === TEST_EXERCISE) p.tests.push({ date: e.date, reps });
-    if (reps > 0) p.days.push(e.date);
+    p.dayTotals.set(e.date, (p.dayTotals.get(e.date) || 0) + reps);
   }
 
   for (const p of people.values()) {
     p.firstWeek = Math.min(...p.weeks.keys());
+    // A logged day is a day with more than 0 reps in total, so an undo takes the day back.
+    p.days = [...p.dayTotals].filter(([, total]) => total > 0).map(([day]) => day).sort();
     p.comebacks = comebackDays(p.days, config.comebackAfterDays);
   }
 
@@ -134,36 +166,54 @@ export function summarize(entries, today, config) {
       if (!p.weeks.has(w) && !p.weeks.has(w - 1)) continue;
       const reps = p.weeks.get(w) || 0;
       const target = sw ? targetForWeek(p.tests, range.from, config) : null;
+      const goal = target === null ? 0 : setsPerWeek(range.from, config);
+      const set = target === null ? null : setSize(p.tests.filter((t) => t.date <= range.to), config);
+      // One entry for each day, Monday to Sunday: did the person log that day?
+      const days = Array.from({ length: 7 }, (_, i) => p.days.includes(isoDate(utcDay(range.from) + i * DAY_MS)));
       members.push({
         name: p.name,
         reps,
         target,
         percent: target === null ? null : Math.round((100 * reps) / target),
-        testWeek: Boolean(sw) && target === null,
+        days,
+        steps: stepsFor(reps, target, days.filter(Boolean).length, set, goal),
+        goal,
         // What the target will be next week, so a person who just tested can see it.
         nextTarget: nextSw ? targetForWeek(p.tests, nextFrom, config) : null,
         comebacks: p.comebacks.filter((d) => d >= range.from && d <= range.to),
       });
     }
     members.sort((a, b) => a.name.localeCompare(b.name));
-    const counted = members.filter((m) => m.target !== null);
-    const groupPercent = counted.length
-      ? Math.round(counted.reduce((s, m) => s + (100 * m.reps) / m.target, 0) / counted.length)
-      : null;
+    const groupReps = members.reduce((s, m) => s + m.reps, 0);
     weeks.push({
       week: w,
       ...range,
       season: sw ? sw.season : null,
       seasonWeek: sw ? sw.week : null,
       members,
-      groupReps: members.reduce((s, m) => s + m.reps, 0),
-      groupPercent,
-      hit: groupPercent !== null && groupPercent >= 100,
+      groupReps,
+      // The climb: the summit is the sets of every person with a target.
+      // A starter adds steps and no height.
+      steps: members.reduce((s, m) => s + m.steps, 0),
+      maxSteps: members.reduce((s, m) => s + m.goal, 0),
+      // One rep is one foot.
+      feet: Math.max(0, groupReps),
     });
+  }
+
+  // The feet of each season: the sum of its weeks. `complete` after its last week ends.
+  const seasons = [];
+  for (const w of weeks) {
+    if (w.season === null) continue;
+    if (!seasons[w.season - 1]) seasons[w.season - 1] = { season: w.season, feet: 0, complete: false };
+    seasons[w.season - 1].feet += w.feet;
+    if (w.seasonWeek === SEASON_WEEKS && w.week < currentWeek) seasons[w.season - 1].complete = true;
   }
 
   const setSizes = Object.fromEntries([...people.values()].map((p) => [p.name, setSize(p.tests, config)]));
   // Each person's latest test, { date, reps }, or null with no test.
   const lastTests = Object.fromEntries([...people.values()].map((p) => [p.name, latestTest(p.tests, "9999-12-31")]));
-  return { currentWeek, weeks, names: [...people.values()].map((p) => p.name).sort(), setSizes, lastTests };
+  // Each person's logged days, oldest first.
+  const loggedDays = Object.fromEntries([...people.values()].map((p) => [p.name, p.days]));
+  return { currentWeek, weeks, seasons, names: [...people.values()].map((p) => p.name).sort(), setSizes, lastTests, loggedDays };
 }

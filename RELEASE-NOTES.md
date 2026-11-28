@@ -2,6 +2,17 @@
 
 What changed on the site, newest first. The newest entry also shows in the "What's new" box on the page (`whats-new.js`).
 
+## 2026-11-30: Climb a mountain together
+
+The page is simpler, and the group now climbs a mountain each week.
+
+- Each set you log moves the group one step up. At 3 sets a day for 5 days, that is 15 steps a week. Extra sets cover a friend.
+- One rep is one foot, and the page shows the feet as you climb. Each Monday, it shows a landmark as high as the group climbed.
+- New here? Do any pushups on 5 days first. The max-reps test comes after that.
+- The board shows days and percent. Your own card shows your reps.
+- Logged the wrong number? Tap Undo right after you log.
+- Week 4 of season 1 is Dec 7 to 13. It is a normal week, and your target stays the same. Do a new max-reps test that week.
+
 ## 2026-11-22: 3 sets a day, starting Monday
 
 From Monday, Nov 23, aim for 3 sets a day, 5 days a week. This week's target stays the same.

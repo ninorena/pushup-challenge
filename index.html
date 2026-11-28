@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-title" content="Pushups">
   <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#151514" media="(prefers-color-scheme: dark)">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2026-11-30">
 </head>
 <body>
   <main>
@@ -26,60 +26,97 @@
     </div>
     <p id="error" class="banner error" hidden></p>
 
-    <section id="whats-new" class="card whats-new" aria-live="polite" hidden></section>
+    <div id="home">
+      <section id="whats-new" class="card whats-new" aria-live="polite" hidden></section>
 
-    <section id="progress" class="card"></section>
+      <section id="reveal" class="card reveal" hidden></section>
 
-    <details id="how-it-works" class="card">
-      <summary>How it works</summary>
+      <section id="me" class="card">
+        <div id="me-head" aria-live="polite"></div>
+        <form id="log-form">
+          <div id="who" class="row" hidden>
+            <label>Name
+              <select id="name-select"></select>
+            </label>
+            <label>Your name
+              <input id="new-name" name="name" autocomplete="off" spellcheck="false" maxlength="40" aria-describedby="form-status">
+            </label>
+          </div>
+          <div class="row log-row">
+            <label>Pushups today
+              <input id="reps" name="reps" type="number" inputmode="numeric" step="1" min="1" max="2000" required aria-describedby="form-status">
+            </label>
+            <button type="submit" id="submit">Log reps</button>
+          </div>
+          <p id="form-status" class="muted" aria-live="polite"></p>
+        </form>
+        <button type="button" id="switch-name" class="link" hidden>Not you? Change the name</button>
+      </section>
+
+      <section class="card">
+        <h2>This week</h2>
+        <div id="group-body"></div>
+      </section>
+
+      <nav aria-label="More">
+        <a href="#how">How it works</a>
+        <a href="#past">Past weeks</a>
+        <a href="#test">Max-reps test</a>
+        <a href="#day">Another day</a>
+      </nav>
+    </div>
+
+    <section id="page-how" class="card page" hidden>
+      <a href="#" class="back">Back</a>
+      <h2 tabindex="-1">How it works</h2>
       <p id="how-intro"></p>
       <ol id="first-steps"></ol>
       <h3>Rules</h3>
       <ul id="rules"></ul>
-    </details>
-
-    <section class="card">
-      <h2>Log pushups</h2>
-      <div class="tabs" role="tablist" aria-label="What to log">
-        <button type="button" role="tab" id="tab-reps" aria-selected="true" aria-controls="log-form">Log reps</button>
-        <button type="button" role="tab" id="tab-test" aria-selected="false" aria-controls="log-form" tabindex="-1">Max-reps test</button>
-      </div>
-      <form id="log-form" role="tabpanel" aria-labelledby="tab-reps">
-        <div id="test-guide" hidden></div>
-        <label>Name
-          <select id="name-select" required aria-describedby="form-status"></select>
-        </label>
-        <label id="new-name-label" hidden>Your name
-          <input id="new-name" name="name" autocomplete="off" spellcheck="false" maxlength="40" aria-describedby="form-status">
-        </label>
-        <div class="row">
-          <label>Reps
-            <input id="reps" name="reps" type="number" inputmode="numeric" step="1" min="-2000" max="2000" required aria-describedby="form-status">
-          </label>
-          <label>Day
-            <input id="date" name="date" type="date" required aria-describedby="form-status">
-          </label>
-        </div>
-        <label id="take-off-label" class="check">
-          <input id="take-off" type="checkbox"> Take off reps (fix a mistake)
-        </label>
-        <p id="set-guide" class="muted"></p>
-        <button type="submit" id="submit">Log reps</button>
-        <p id="form-status" class="muted" aria-live="polite"></p>
-      </form>
     </section>
 
-    <section class="card">
-      <h2>This week</h2>
-      <div id="this-week"></div>
-    </section>
-
-    <section class="card">
-      <h2>Past weeks</h2>
+    <section id="page-past" class="card page" hidden>
+      <a href="#" class="back">Back</a>
+      <h2 tabindex="-1">Past weeks</h2>
       <div id="history"></div>
     </section>
 
+    <section id="page-test" class="card page" hidden>
+      <a href="#" class="back">Back</a>
+      <h2 tabindex="-1">Max-reps test</h2>
+      <p>One set, as many good pushups as you can. Your target changes from the day you test.</p>
+      <p id="test-last" class="muted"></p>
+      <p id="test-who" class="muted"></p>
+      <form id="test-form" class="test-mode">
+        <label>Pushups in one set
+          <input id="test-reps" type="number" inputmode="numeric" step="1" min="1" max="2000" required>
+        </label>
+        <button type="submit" id="test-submit">Save my test</button>
+      </form>
+    </section>
+
+    <section id="page-day" class="card page" hidden>
+      <a href="#" class="back">Back</a>
+      <h2 tabindex="-1">Another day</h2>
+      <p>Log pushups for an earlier day, or take off reps that you logged by mistake.</p>
+      <p id="day-who" class="muted"></p>
+      <form id="day-form">
+        <div class="row">
+          <label>Pushups
+            <input id="day-reps" type="number" inputmode="numeric" step="1" min="1" max="2000" required>
+          </label>
+          <label>Day
+            <input id="date" name="date" type="date" required>
+          </label>
+        </div>
+        <label class="check">
+          <input id="take-off" type="checkbox"> Take off reps (fix a mistake)
+        </label>
+        <button type="submit" id="day-submit">Log reps</button>
+      </form>
+    </section>
+
   </main>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=2026-11-30"></script>
 </body>
 </html>
