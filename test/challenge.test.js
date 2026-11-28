@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { weekOf, weekRange, seasonWeek, targetForWeek, comebackDays, setSize, summarize, multiplierOn, stepsFor, tallestWithin } from "../challenge.js";
+import { weekOf, weekRange, seasonWeek, targetForWeek, comebackDays, setSize, summarize, multiplierOn, stepsFor, setsPerWeek, tallestWithin } from "../challenge.js";
 
 // Weeks 1 and 2 (Oct 26, Nov 2) are before seasons. Season 1 is weeks 3 to 6
 // (Nov 9 to Dec 6). Season 2 starts in week 7 (Dec 7).
@@ -164,23 +164,39 @@ test("rule 7: two empty weeks take a person out until they return, with their ol
   assert.equal(member(s, 5, "Ben").target, 65); // keeps his old target (max 10)
 });
 
-test("rule 8: a person with a target adds one step for each 10% of it, to a maximum of 10", () => {
-  assert.equal(stepsFor(0, 130, 0), 0);
-  assert.equal(stepsFor(12, 130, 1), 0); // 9%
-  assert.equal(stepsFor(13, 130, 1), 1); // 10%
-  assert.equal(stepsFor(129, 130, 5), 9);
-  assert.equal(stepsFor(130, 130, 5), 10);
-  assert.equal(stepsFor(400, 130, 5), 10); // over 100% adds nothing
-  assert.equal(stepsFor(-5, 130, 0), 0);
+test("rule 8: one set at the set size is one step, and reps carry over in the week", () => {
+  // Target 130, sets of 13, 10 sets a week.
+  assert.equal(stepsFor(0, 130, 0, 13, 10), 0);
+  assert.equal(stepsFor(12, 130, 1, 13, 10), 0);
+  assert.equal(stepsFor(13, 130, 1, 13, 10), 1);
+  assert.equal(stepsFor(129, 130, 5, 13, 10), 9);
+  assert.equal(stepsFor(130, 130, 5, 13, 10), 10);
+  assert.equal(stepsFor(400, 130, 5, 13, 10), 30); // no maximum: extra sets cover a friend
+  assert.equal(stepsFor(-5, 130, 0, 13, 10), 0);
 });
 
-test("rule 8: a starter adds two steps for each logged day, to a maximum of 10", () => {
-  assert.equal(stepsFor(3, null, 1), 2);
-  assert.equal(stepsFor(900, null, 1), 2); // the reps of a starter do not change the steps
-  assert.equal(stepsFor(40, null, 7), 10);
+test("rule 8: a person at their target has every step, whatever the set size rounds to", () => {
+  // Max 21: target 205, set 14 (rounded up). 15 sets of 14 is 210, but 205 is the target.
+  assert.equal(stepsFor(14, 205, 1, 14, 15), 1);
+  assert.equal(stepsFor(205, 205, 5, 14, 15), 15);
+  // Max 17: target 166, set 11 (rounded down). One logged set is still one step.
+  assert.equal(stepsFor(11, 166, 1, 11, 15), 1);
+  assert.equal(stepsFor(166, 166, 5, 11, 15), 15);
 });
 
-test("rule 8: the percent is not capped, but a strong week does not cover another person", () => {
+test("rule 8: the sets in a target come from the multiplier and the set share", () => {
+  const live = { ...config, weeklyMultiplier: 9.75, earlierMultipliers: [{ until: "2026-11-22", weeklyMultiplier: 6.5 }] };
+  assert.equal(setsPerWeek("2026-11-23", live), 15);
+  assert.equal(setsPerWeek("2026-11-16", live), 10);
+});
+
+test("rule 8: a starter adds three steps for each logged day", () => {
+  assert.equal(stepsFor(3, null, 1), 3);
+  assert.equal(stepsFor(900, null, 1), 3); // the reps of a starter do not change the steps
+  assert.equal(stepsFor(40, null, 7), 21);
+});
+
+test("rule 8: a strong week covers another person", () => {
   const entries = [
     { name: "Ana", date: "2026-11-02", reps: 20, exercise: MAX },
     { name: "Ben", date: "2026-11-02", reps: 20, exercise: MAX },
@@ -189,12 +205,12 @@ test("rule 8: the percent is not capped, but a strong week does not cover anothe
   ];
   const w3 = summarize(entries, "2026-11-10", config).weeks[2];
   assert.equal(w3.members.find((m) => m.name === "Ana").percent, 150);
-  assert.equal(w3.members.find((m) => m.name === "Ana").steps, 10);
-  assert.equal(w3.steps, 15);
+  assert.equal(w3.members.find((m) => m.name === "Ana").steps, 15);
+  assert.equal(w3.steps, 20);
   assert.equal(w3.maxSteps, 20);
 });
 
-test("rule 8: a starter counts in the climb", () => {
+test("rule 8: a starter adds steps to the climb and no height to the mountain", () => {
   const entries = [
     { name: "Ana", date: "2026-11-02", reps: 20, exercise: MAX },
     { name: "Ana", date: "2026-11-10", reps: 130 },
@@ -202,8 +218,8 @@ test("rule 8: a starter counts in the climb", () => {
     { name: "Ben", date: "2026-11-11", reps: 1 },
   ];
   const w3 = summarize(entries, "2026-11-11", config).weeks[2];
-  assert.equal(w3.steps, 14);
-  assert.equal(w3.maxSteps, 20);
+  assert.equal(w3.steps, 16);
+  assert.equal(w3.maxSteps, 10);
 });
 
 test("rule 12: each person has one mark for each day of the week, Monday first", () => {
@@ -224,7 +240,7 @@ test("rule 12: an undo takes the day back", () => {
   ];
   const s = summarize(entries, "2026-11-10", config);
   assert.deepEqual(s.loggedDays.Ana, ["2026-11-09"]);
-  assert.equal(member(s, 3, "Ana").steps, 2);
+  assert.equal(member(s, 3, "Ana").steps, 3);
 });
 
 test("rule 13: one rep is one foot, and a season adds up its weeks", () => {

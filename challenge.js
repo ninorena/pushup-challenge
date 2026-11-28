@@ -5,9 +5,8 @@ export const SEASON_WEEKS = 4;
 export const TEST_EXERCISE = "pushups-max";
 // A person with no test is a starter. After this many logged days, the page asks for the test.
 export const STARTER_DAYS = 5;
-// The climb: each person can add this many steps in a week.
-export const STEPS_PER_WEEK = 10;
-const STARTER_DAY_STEPS = 2;
+// The climb: one set is one step. A starter day is this many steps: the suggested sets for a day.
+export const STARTER_DAY_STEPS = 3;
 
 function utcDay(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -99,12 +98,21 @@ export function comebackDays(days, afterDays) {
   return sorted.filter((d, i) => i > 0 && daysBetween(sorted[i - 1], d) >= afterDays);
 }
 
-// The steps one person adds to the group climb in a week.
-// With a target: one step for each 10% of the target. With no target (a starter):
-// two steps for each logged day. Both stop at STEPS_PER_WEEK, so nobody can carry the group.
-export function stepsFor(reps, target, daysLogged) {
-  const steps = target === null ? daysLogged * STARTER_DAY_STEPS : Math.floor((reps * STEPS_PER_WEEK) / target);
-  return Math.max(0, Math.min(STEPS_PER_WEEK, steps));
+// The sets in a weekly target: the weekly multiplier divided by the set share
+// (9.75 / 0.65 = 15, which is 3 sets a day for 5 days).
+export function setsPerWeek(day, config) {
+  return Math.round(multiplierOn(day, config) / config.setShare);
+}
+
+// The steps one person adds to the group climb in a week. One set is one step,
+// and reps carry over within the week. A person at their target always has
+// `goal` steps, also when the rounded set size does not divide the target.
+// There is no maximum: a strong week covers a friend.
+// With no target (a starter): STARTER_DAY_STEPS for each logged day.
+export function stepsFor(reps, target, daysLogged, set, goal) {
+  if (target === null) return daysLogged * STARTER_DAY_STEPS;
+  if (reps <= 0) return 0;
+  return Math.max(set ? Math.floor(reps / set) : 0, Math.floor((reps * goal) / target));
 }
 
 // The tallest item in `list` ([{ name, feet }]) that is not taller than `feet`, or null.
@@ -158,6 +166,8 @@ export function summarize(entries, today, config) {
       if (!p.weeks.has(w) && !p.weeks.has(w - 1)) continue;
       const reps = p.weeks.get(w) || 0;
       const target = sw ? targetForWeek(p.tests, range.from, config) : null;
+      const goal = target === null ? 0 : setsPerWeek(range.from, config);
+      const set = target === null ? null : setSize(p.tests.filter((t) => t.date <= range.to), config);
       // One entry for each day, Monday to Sunday: did the person log that day?
       const days = Array.from({ length: 7 }, (_, i) => p.days.includes(isoDate(utcDay(range.from) + i * DAY_MS)));
       members.push({
@@ -166,7 +176,8 @@ export function summarize(entries, today, config) {
         target,
         percent: target === null ? null : Math.round((100 * reps) / target),
         days,
-        steps: stepsFor(reps, target, days.filter(Boolean).length),
+        steps: stepsFor(reps, target, days.filter(Boolean).length, set, goal),
+        goal,
         // What the target will be next week, so a person who just tested can see it.
         nextTarget: nextSw ? targetForWeek(p.tests, nextFrom, config) : null,
         comebacks: p.comebacks.filter((d) => d >= range.from && d <= range.to),
@@ -181,9 +192,10 @@ export function summarize(entries, today, config) {
       seasonWeek: sw ? sw.week : null,
       members,
       groupReps,
-      // The climb: the summit is every person at STEPS_PER_WEEK steps.
+      // The climb: the summit is the sets of every person with a target.
+      // A starter adds steps and no height.
       steps: members.reduce((s, m) => s + m.steps, 0),
-      maxSteps: members.length * STEPS_PER_WEEK,
+      maxSteps: members.reduce((s, m) => s + m.goal, 0),
       // One rep is one foot.
       feet: Math.max(0, groupReps),
     });

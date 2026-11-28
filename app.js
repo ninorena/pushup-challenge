@@ -210,8 +210,8 @@ function renderMe() {
     const reps = m ? m.reps : 0;
     const size = summary.setSizes[known];
     body.push(el("p", { class: "muted" },
-      m && m.target !== null ? `${reps.toLocaleString()} of ${m.target.toLocaleString()} reps this week.` : `${reps.toLocaleString()} reps this week.`,
-      size ? ` Your sets: about ${size}.` : ""));
+      m && m.target !== null ? `${reps.toLocaleString()} of ${m.target.toLocaleString()} reps this week, ${m.steps} of ${m.goal} steps.` : `${reps.toLocaleString()} reps this week.`,
+      size ? ` Your sets: about ${size}, one step each.` : ""));
     if (week && week.seasonWeek === SEASON_WEEKS) {
       body.push(el("p", { class: "muted" }, "Retest week: ", el("a", { href: "#test" }, "do a new max-reps test"), " this week."));
     }
@@ -272,11 +272,12 @@ function renderGroup(week) {
     box.append(el("p", { class: "muted" }, "Nobody has logged this week yet."));
     return;
   }
-  const summit = week.steps >= week.maxSteps;
+  const summit = week.maxSteps > 0 && week.steps >= week.maxSteps;
+  const climb = week.maxSteps > 0 ? `${week.steps} of ${week.maxSteps} steps to the summit.` : `${week.steps} ${week.steps === 1 ? "step" : "steps"} so far.`;
   box.append(
     mountain(week),
-    el("p", { class: summit ? "good" : "" }, summit ? "Summit reached. Everyone hit their target." : `${week.steps} of ${week.maxSteps} steps to the summit.`),
-    el("p", { class: "muted" }, "On Monday, you see how high the group climbed."),
+    el("p", { class: summit ? "good" : "" }, summit ? `Summit reached: ${week.steps} of ${week.maxSteps} steps.` : climb),
+    el("p", { class: "muted" }, `${feetText(week.feet)} climbed this week. One set is one step. One rep is one foot.`),
   );
   const known = knownName();
   const rows = [...week.members].sort((a, b) => (b.name === known) - (a.name === known));
@@ -285,7 +286,7 @@ function renderGroup(week) {
     const count = m.days.filter(Boolean).length;
     let status = "";
     if (m.percent !== null) status = el("span", { class: m.percent >= 100 ? "good" : "" }, `${m.percent}%`);
-    else if (week.season !== null) status = el("span", { class: "muted small" }, "starter");
+    else if (week.season !== null) status = el("span", { class: "muted small" }, "🌱 first week");
     list.append(el(
       "li", {},
       el("span", { class: "who" }, m.name, m.name === known ? el("span", { class: "muted you" }, " (you)") : ""),
@@ -368,7 +369,7 @@ function renderRules() {
     "Weeks run Monday to Sunday. A season is 4 weeks. In week 4, do a new test to set your target for the next season.",
     "You can retest any day. Your new target starts that day. Retest when you move to a harder kind of pushup.",
     "The board shows the days you logged and your percent of your own target. It does not show reps.",
-    "The climb: each 10% of your own target is one step, up to 10 steps a week. Before your test, each day you log is 2 steps. The summit is everyone at 10 steps.",
+    "The climb: each set at your set size is one step, and reps add up over the week. A target of 3 sets a day for 5 days is 15 steps. Before your test, each day you log is 3 steps. The summit is every target added up, so extra sets cover a friend.",
     "One rep is one foot. On Monday, the page shows how high the group climbed and a landmark of that height. After 4 weeks, it shows a mountain.",
     "Skip two weeks in a row and you leave the climb until you log again. No penalty.",
     "Logged the wrong number? Tap Undo right after you log. For an older mistake, open \"Another day\".",
@@ -505,7 +506,7 @@ function showLogged(entry) {
     lastLogged = null;
     if (await save({ ...entry, reps: -entry.reps }, undo)) $("form-status").textContent = `Took off ${entry.reps}.`;
   });
-  $("form-status").replaceChildren(`Logged ${entry.reps}. `, undo);
+  $("form-status").replaceChildren(`Logged ${entry.reps}. `, undo, ".");
 }
 
 // The main form: reps for today.

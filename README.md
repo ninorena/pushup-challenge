@@ -16,8 +16,8 @@ The site is plain HTML and JavaScript on GitHub Pages. A Google Sheet stores the
 - Week 4 of each season is a retest week. Its target is a normal week's target. People retest that week, and the new target starts on the test day, as with any retest.
 - Any kind of pushup counts, from wall pushups to one-armed. A person uses the same kind for the test and the sets. Every rep counts as one. A person who moves to a harder kind retests.
 - The board shows 7 marks for the days of the week and a percent for each person. The percent is reps divided by target. The board does not show reps. A person sees their own reps on their own card.
-- The group climbs a mountain each week. A person with a target adds 1 step for each 10% of the target. A starter adds 2 steps for each logged day. The maximum is 10 steps a week for each person, so a strong week does not cover another person. The summit is every person at 10 steps.
-- One rep is one foot. The page shows the feet of a week only after the week ends. It shows them with the tallest landmark in `heights.js` that is not taller. A week always shows its feet, also when the group did not reach the summit.
+- The group climbs a mountain each week. One set at a person's set size is one step, and reps add up over the week. A target is weekly multiplier / set share sets (9.75 / 0.65 = 15 steps). A starter adds 3 steps for each logged day and adds no height. The summit is the sum of the steps of every person with a target. There is no maximum, so extra sets cover a friend.
+- One rep is one foot. The group card shows the feet of the current week as the group climbs. After the week ends, the page shows them with the tallest landmark in `heights.js` that is not taller. A week always shows its feet, also when the group did not reach the summit.
 - The feet of a season are the sum of its 4 weeks. After week 4, the page shows them with a mountain from `heights.js`. The feet start at zero each season.
 - Each height in `heights.js` has the address of its source.
 - A person who logs after `comebackAfterDays` (3) or more days without logging gets a "Welcome back" card that day.
